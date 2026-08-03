@@ -1,57 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="240" viewBox="0 0 900 240" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="220" viewBox="0 0 900 220" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="240" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="220" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0a0a0b"/>
-      <stop offset="1" stop-color="#131316"/>
+      <stop offset="0.5" stop-color="#131316"/>
+      <stop offset="1" stop-color="#0a0a0b"/>
     </linearGradient>
-    <radialGradient id="glow1" cx="0.3" cy="0.2" r="0.6">
-      <stop offset="0" stop-color="#5eead4" stop-opacity="0.08"/>
-      <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#5eead4"/>
       <stop offset="1" stop-color="#2dd4bf"/>
     </linearGradient>
-    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
-      <circle cx="12" cy="12" r="0.7" fill="#1a1a1f"/>
-    </pattern>
+    <radialGradient id="glow" cx="0.25" cy="0.3" r="0.5">
+      <stop offset="0" stop-color="#5eead4" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <rect width="900" height="240" fill="url(#bg)"/>
-  <rect width="900" height="240" fill="url(#dots)"/>
-  <rect width="900" height="240" fill="url(#glow1)"/>
+  <rect width="900" height="220" fill="url(#bg)"/>
+  <rect width="900" height="220" fill="url(#glow)"/>
 
   <!-- Shield -->
-  <g transform="translate(50, 50)">
-    <path d="M42 0 L80 15 L80 52 Q80 90 42 108 Q4 90 4 52 L4 15 Z" fill="#0a0a0b" stroke="url(#accent)" stroke-width="2"/>
-    <path d="M42 6 L74 19 L74 50 Q74 83 42 98 Q10 83 10 50 L10 19 Z" fill="#5eead4" fill-opacity="0.06"/>
-    <text x="42" y="64" text-anchor="middle" font-family="JetBrains Mono, SF Mono, Consolas, monospace" font-size="36" font-weight="bold" fill="#5eead4">W</text>
+  <g transform="translate(60, 40)">
+    <path d="M40 0 L76 14 L76 50 Q76 88 40 104 Q4 88 4 50 L4 14 Z" fill="#0a0a0b" stroke="url(#teal)" stroke-width="2"/>
+    <path d="M40 6 L70 19 L70 48 Q70 82 40 96 Q10 82 10 48 L10 19 Z" fill="#5eead4" fill-opacity="0.08"/>
+    <text x="40" y="62" text-anchor="middle" font-family="monospace" font-size="34" font-weight="bold" fill="#5eead4">W</text>
   </g>
 
   <!-- Title -->
-  <text x="180" y="80" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#e8e8ea" letter-spacing="-1">Warden</text>
+  <text x="175" y="75" font-family="sans-serif" font-size="36" font-weight="bold" fill="#e8e8ea" letter-spacing="-1">Warden</text>
 
   <!-- Subtitle -->
-  <text x="182" y="108" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="15" fill="#8a8a94">Structurally-verified context layer for AI coding agents</text>
+  <text x="177" y="100" font-family="sans-serif" font-size="14" fill="#8a8a94">Structurally-verified context layer for AI coding agents</text>
 
   <!-- Pills -->
-  <g transform="translate(182, 130)" font-family="JetBrains Mono, SF Mono, Consolas, monospace" font-size="11">
-    <rect x="0" y="0" width="115" height="22" rx="11" fill="#131316" stroke="#26262d"/>
-    <text x="57" y="15" text-anchor="middle" fill="#4ade80">91% token cut</text>
-    <rect x="125" y="0" width="125" height="22" rx="11" fill="#131316" stroke="#26262d"/>
-    <text x="187" y="15" text-anchor="middle" fill="#5eead4">100% verbatim</text>
-    <rect x="260" y="0" width="95" height="22" rx="11" fill="#131316" stroke="#26262d"/>
-    <text x="307" y="15" text-anchor="middle" fill="#fbbf24">30+ agents</text>
-    <rect x="365" y="0" width="60" height="22" rx="11" fill="#131316" stroke="#26262d"/>
-    <text x="395" y="15" text-anchor="middle" fill="#8a8a94">free</text>
-    <rect x="435" y="0" width="85" height="22" rx="11" fill="#131316" stroke="#26262d"/>
-    <text x="477" y="15" text-anchor="middle" fill="#8a8a94">local only</text>
+  <g font-family="monospace" font-size="11">
+    <rect x="177" y="120" width="110" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="232" y="135" text-anchor="middle" fill="#4ade80">91% token cut</text>
+
+    <rect x="297" y="120" width="120" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="357" y="135" text-anchor="middle" fill="#5eead4">100% verbatim</text>
+
+    <rect x="427" y="120" width="90" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="472" y="135" text-anchor="middle" fill="#fbbf24">30+ agents</text>
+
+    <rect x="527" y="120" width="55" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="554" y="135" text-anchor="middle" fill="#8a8a94">free</text>
+
+    <rect x="592" y="120" width="80" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="632" y="135" text-anchor="middle" fill="#8a8a94">local only</text>
   </g>
 
   <!-- Install line -->
-  <text x="182" y="185" font-family="JetBrains Mono, SF Mono, Consolas, monospace" font-size="13" fill="#565660">$ npm install -g warden-ai && warden init</text>
+  <text x="177" y="175" font-family="monospace" font-size="13" fill="#565660">$ npm install -g warden-ai &amp;&amp; warden init</text>
 
   <!-- Accent bars -->
-  <rect x="0" y="0" width="3" height="240" fill="url(#accent)" opacity="0.5"/>
-  <rect x="897" y="0" width="3" height="240" fill="url(#accent)" opacity="0.5"/>
+  <rect x="0" y="0" width="3" height="220" fill="url(#teal)" opacity="0.6"/>
+  <rect x="897" y="0" width="3" height="220" fill="url(#teal)" opacity="0.6"/>
 </svg>

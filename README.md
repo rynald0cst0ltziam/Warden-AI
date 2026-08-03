@@ -3,6 +3,10 @@
 </p>
 
 <p align="center">
+  <strong>Your AI agent burns tokens on noise. Warden stops that.</strong>
+</p>
+
+<p align="center">
   <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=flat-square&color=blue" alt="npm"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License"></a>
   <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange?style=flat-square" alt="30+ agents"></a>
@@ -22,7 +26,7 @@
   <a href="#privacy">Privacy</a>
 </p>
 
----
+<br>
 
 Warden is an MCP server for Claude Code, Cursor, Codex, Windsurf, Cline, Gemini, and 30+ other agents. Install once. Warden prunes tool output, compresses responses, indexes your codebase, and remembers decisions across sessions — then proves every cut is safe with a verifiable trust guard.
 
@@ -36,47 +40,73 @@ npm install -g warden-ai && warden init
 curl -fsSL https://raw.githubusercontent.com/rynald0cst0ltziam/Warden-AI/main/install.sh | bash
 ```
 
-~10 seconds. Needs Node ≥ 22.5. Skips agents you don't have. Safe to re-run.
+~10 seconds · Node ≥ 22.5 · skips agents you don't have · safe to re-run
 
 `warden init` does everything:
 
-| Step | What happens |
-|------|-------------|
-| **Register** | Warden registered as MCP server in all detected agents (30+) |
-| **Rules** | Agent rules files written (CLAUDE.md, AGENTS.md, .cursorrules, etc.) |
-| **Index** | Code index built — call graph, imports, symbols, dead code |
-| **Compress** | Memory files compressed to save tokens every future session |
+| | Step | What happens |
+|:-:|:-----|:-------------|
+| 1 | **Register** | Warden registered as MCP server in all detected agents (30+) |
+| 2 | **Rules** | Agent rules files written (CLAUDE.md, AGENTS.md, .cursorrules, etc.) |
+| 3 | **Index** | Code index built — call graph, imports, symbols, dead code |
+| 4 | **Compress** | Memory files compressed to save tokens every future session |
 
-**Restart your IDE. Start working normally.** Warden runs automatically.
+**Restart your IDE. Start working normally.** Warden runs automatically — no commands to remember, no settings to tune, no levels to pick. Max compression is always on.
 
 > **See it working:** your agent prints `‹warden› saved 4295 tokens (79%)` on every tool call. Run `warden hud` for a live terminal HUD. Run `warden dashboard` for a web UI at http://localhost:7878.
+
+<details>
+<summary><b>Install for one agent, or see what's detected</b></summary>
+
+```bash
+warden doctor          # see which agents are detected (16 checks)
+warden init            # re-register after installing a new agent
+warden benchmark       # see real benchmark numbers on your own files
+```
+
+Warden detects and registers for: Claude Code, Claude Desktop, Cursor, Windsurf, Codex CLI, Cline, Roo Code, Continue, VS Code Copilot, Zed, JetBrains, Amazon Q, Gemini CLI, Antigravity, Aider, Goose, OpenHands, opencode, Augment Code, Warp, Cody, Tabnine, Replit AI, and more.
+
+</details>
+
+<br>
 
 ## Before / After
 
 Same grep query. Same information. **79% fewer tokens.**
 
-**Without Warden — 4,295 tokens:**
+<table>
+<tr>
+<th>🔴 Without Warden — 4,295 tokens</th>
+<th>🟢 With Warden — 883 tokens</th>
+</tr>
+<tr>
+<td>
 
 ```text
 $ grep -rn "function auth" src/
-src/auth/login.ts:15:export function login(user: string) {
+src/auth/login.ts:15:export function login(user) {
 src/auth/login.ts:16:  const token = signJWT(user);
 src/auth/login.ts:17:  if (!token) throw new Error("no token");
 src/auth/login.ts:18:  return { token, user };
 src/auth/login.ts:19:}
-src/auth/middleware.ts:45:export function authMiddleware(req, res, next) {
-src/auth/middleware.ts:46:  const token = req.headers.authorization;
-src/auth/middleware.ts:47:  if (!token) return res.status(401).send("no token");
+src/auth/middleware.ts:45:export function
+  authMiddleware(req, res, next) {
+src/auth/middleware.ts:46:  const token =
+  req.headers.authorization;
+src/auth/middleware.ts:47:  if (!token) return
+  res.status(401).send("no token");
 src/auth/middleware.ts:48:  try {
 src/auth/middleware.ts:49:    const payload = verify(token);
 src/auth/middleware.ts:50:    req.user = payload.user;
 src/auth/middleware.ts:51:    next();
 src/auth/middleware.ts:52:  } catch (e) {
-src/auth/middleware.ts:53:    return res.status(401).send("invalid token");
+src/auth/middleware.ts:53:    return res.status(401).send(
+      "invalid token");
 ... (138 more matches)
 ```
 
-**With Warden — 883 tokens:**
+</td>
+<td>
 
 ```text
 warden_grep({ pattern: "function auth" })
@@ -87,15 +117,27 @@ warden_grep({ pattern: "function auth" })
   guard: every line verbatim ✓
   saved: 4295 → 883 tokens (-79%)
 
-  src/auth/login.ts:15      export function login(user)
-  src/auth/login.ts:22      export function logout()
-  src/auth/middleware.ts:45  authMiddleware(req,res,next)
-  src/auth/token.ts:8       export function generateToken()
-  src/auth/token.ts:31      export function verifyToken()
-  ... 7 more (use warden_retrieve for full)
+  src/auth/login.ts:15
+    export function login(user)
+  src/auth/login.ts:22
+    export function logout()
+  src/auth/middleware.ts:45
+    authMiddleware(req,res,next)
+  src/auth/token.ts:8
+    export function generateToken()
+  src/auth/token.ts:31
+    export function verifyToken()
+  ... 7 more
+  (use warden_retrieve for full)
 ```
 
+</td>
+</tr>
+</table>
+
 Every line in the pruned output exists verbatim in the raw — verified by the trust guard.
+
+<br>
 
 ## What it does
 
@@ -120,6 +162,8 @@ Every line in the pruned output exists verbatim in the raw — verified by the t
 | **Eval gate** | Rules earn confidence through real samples before going live. |
 | **Regression watchdog** | Tracks task success rates. Auto-reverts rules that degrade outcomes. |
 | **CCR** | Every cut reversible. Full original cached 7 days. `warden_retrieve` with `--around` and `--lines`. |
+
+<br>
 
 ## Code intelligence
 
@@ -148,6 +192,8 @@ warden_search_symbols({ pattern: "auth" })
 
 Supports **TypeScript, JavaScript, Python** — functions, classes, methods, interfaces, types, enums, imports, call sites.
 
+<br>
+
 ## Trust guard
 
 40 lines. Read them yourself.
@@ -163,6 +209,8 @@ No exceptions. No heuristics. No silent rewrites.
 
 Code, shell commands, and error text are **included-or-excluded wholesale** — never altered. **Safety first, optimization second.**
 
+<br>
+
 ## Works with 30+ agents
 
 | | | | | |
@@ -174,6 +222,8 @@ Code, shell commands, and error text are **included-or-excluded wholesale** — 
 | Cody | Tabnine | Replit AI | + more | |
 
 **If your agent supports MCP, Warden works with it.**
+
+<br>
 
 ## Commands
 
@@ -199,6 +249,8 @@ Code, shell commands, and error text are **included-or-excluded wholesale** — 
 | `warden memory recall <query>` | Search memories |
 | `warden rules` | Write agent rules files |
 
+<br>
+
 ## MCP tools
 
 **24 tools. All called automatically by your agent via the rules file.**
@@ -213,6 +265,8 @@ Code, shell commands, and error text are **included-or-excluded wholesale** — 
 | **CCR (reversibility)** | `warden_retrieve` · `warden_ccr_status` |
 | **Session continuity** | `warden_handoff` — `read: true` at start, generate at end |
 
+<br>
+
 ## Privacy
 
 ```text
@@ -225,6 +279,8 @@ The only network code: **localhost-only dashboard** — bound to 127.0.0.1, no e
 
 Audit it yourself — it's open source. The trust guard is 40 lines in `src/pruner/guard.ts`.
 
+<br>
+
 ## Tests
 
 ```text
@@ -235,6 +291,8 @@ Test Files  20 passed (20)
 ```
 
 Includes property-based guard tests that verify the trust invariant with randomized inputs.
+
+<br>
 
 ## Requirements
 
