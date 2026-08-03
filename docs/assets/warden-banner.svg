@@ -1,52 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="840" height="320" viewBox="0 0 840 320" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="240" viewBox="0 0 900 240" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="840" y2="320" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0a0a0a"/>
-      <stop offset="0.5" stop-color="#0f0f0f"/>
-      <stop offset="1" stop-color="#0a0a0a"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0a0a0b"/>
+      <stop offset="1" stop-color="#131316"/>
     </linearGradient>
+    <radialGradient id="glow1" cx="0.3" cy="0.2" r="0.6">
+      <stop offset="0" stop-color="#5eead4" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#00ff88"/>
-      <stop offset="1" stop-color="#00cc66"/>
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
     </linearGradient>
-    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#111" stroke-width="0.5"/>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="12" r="0.7" fill="#1a1a1f"/>
     </pattern>
   </defs>
 
-  <!-- Background -->
-  <rect width="840" height="320" fill="url(#bg)"/>
-  <rect width="840" height="320" fill="url(#grid)"/>
+  <rect width="900" height="240" fill="url(#bg)"/>
+  <rect width="900" height="240" fill="url(#dots)"/>
+  <rect width="900" height="240" fill="url(#glow1)"/>
 
-  <!-- Shield icon -->
-  <g transform="translate(370, 30)">
-    <path d="M50 0 L95 18 L95 60 Q95 100 50 120 Q5 100 5 60 L5 18 Z" fill="none" stroke="url(#accent)" stroke-width="2.5"/>
-    <path d="M50 8 L88 22 L88 58 Q88 94 50 110 Q12 94 12 58 L12 22 Z" fill="#00ff88" fill-opacity="0.05" stroke="none"/>
-    <text x="50" y="72" text-anchor="middle" font-family="SF Mono, Fira Code, Consolas, monospace" font-size="42" font-weight="bold" fill="#00ff88">W</text>
+  <!-- Shield -->
+  <g transform="translate(50, 50)">
+    <path d="M42 0 L80 15 L80 52 Q80 90 42 108 Q4 90 4 52 L4 15 Z" fill="#0a0a0b" stroke="url(#accent)" stroke-width="2"/>
+    <path d="M42 6 L74 19 L74 50 Q74 83 42 98 Q10 83 10 50 L10 19 Z" fill="#5eead4" fill-opacity="0.06"/>
+    <text x="42" y="64" text-anchor="middle" font-family="JetBrains Mono, SF Mono, Consolas, monospace" font-size="36" font-weight="bold" fill="#5eead4">W</text>
   </g>
 
   <!-- Title -->
-  <text x="420" y="195" text-anchor="middle" font-family="SF Pro Display, -apple-system, Helvetica, Arial, sans-serif" font-size="36" font-weight="bold" fill="#e0e0e0" letter-spacing="-1">
-    WARDEN
-  </text>
+  <text x="180" y="80" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="38" font-weight="700" fill="#e8e8ea" letter-spacing="-1">Warden</text>
 
-  <!-- Tagline -->
-  <text x="420" y="225" text-anchor="middle" font-family="SF Pro Display, -apple-system, Helvetica, Arial, sans-serif" font-size="16" fill="#888">
-    Your AI agent burns tokens on noise. Warden stops that.
-  </text>
+  <!-- Subtitle -->
+  <text x="182" y="108" font-family="Inter, -apple-system, Helvetica, Arial, sans-serif" font-size="15" fill="#8a8a94">Structurally-verified context layer for AI coding agents</text>
 
-  <!-- Stats line -->
-  <text x="420" y="260" text-anchor="middle" font-family="SF Mono, Fira Code, Consolas, monospace" font-size="13" fill="#00ff88">
-    91% measured reduction · 100% verbatim guard · 30+ agents · free · local only
-  </text>
+  <!-- Pills -->
+  <g transform="translate(182, 130)" font-family="JetBrains Mono, SF Mono, Consolas, monospace" font-size="11">
+    <rect x="0" y="0" width="115" height="22" rx="11" fill="#131316" stroke="#26262d"/>
+    <text x="57" y="15" text-anchor="middle" fill="#4ade80">91% token cut</text>
+    <rect x="125" y="0" width="125" height="22" rx="11" fill="#131316" stroke="#26262d"/>
+    <text x="187" y="15" text-anchor="middle" fill="#5eead4">100% verbatim</text>
+    <rect x="260" y="0" width="95" height="22" rx="11" fill="#131316" stroke="#26262d"/>
+    <text x="307" y="15" text-anchor="middle" fill="#fbbf24">30+ agents</text>
+    <rect x="365" y="0" width="60" height="22" rx="11" fill="#131316" stroke="#26262d"/>
+    <text x="395" y="15" text-anchor="middle" fill="#8a8a94">free</text>
+    <rect x="435" y="0" width="85" height="22" rx="11" fill="#131316" stroke="#26262d"/>
+    <text x="477" y="15" text-anchor="middle" fill="#8a8a94">local only</text>
+  </g>
 
-  <!-- Install command -->
-  <rect x="220" y="278" width="400" height="28" rx="6" fill="#141414" stroke="#222" stroke-width="1"/>
-  <text x="240" y="297" font-family="SF Mono, Fira Code, Consolas, monospace" font-size="12" fill="#e0e0e0">
-    $ npm install -g warden &amp;&amp; warden init
-  </text>
+  <!-- Install line -->
+  <text x="182" y="185" font-family="JetBrains Mono, SF Mono, Consolas, monospace" font-size="13" fill="#565660">$ npm install -g warden-ai && warden init</text>
 
-  <!-- Corner accents -->
-  <rect x="0" y="0" width="4" height="320" fill="url(#accent)" opacity="0.3"/>
-  <rect x="836" y="0" width="4" height="320" fill="url(#accent)" opacity="0.3"/>
+  <!-- Accent bars -->
+  <rect x="0" y="0" width="3" height="240" fill="url(#accent)" opacity="0.5"/>
+  <rect x="897" y="0" width="3" height="240" fill="url(#accent)" opacity="0.5"/>
 </svg>
