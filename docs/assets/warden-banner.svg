@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="320" viewBox="0 0 840 320" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="840" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0a0a0a"/>
+      <stop offset="0.5" stop-color="#0f0f0f"/>
+      <stop offset="1" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00ff88"/>
+      <stop offset="1" stop-color="#00cc66"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#111" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="840" height="320" fill="url(#bg)"/>
+  <rect width="840" height="320" fill="url(#grid)"/>
+
+  <!-- Shield icon -->
+  <g transform="translate(370, 30)">
+    <path d="M50 0 L95 18 L95 60 Q95 100 50 120 Q5 100 5 60 L5 18 Z" fill="none" stroke="url(#accent)" stroke-width="2.5"/>
+    <path d="M50 8 L88 22 L88 58 Q88 94 50 110 Q12 94 12 58 L12 22 Z" fill="#00ff88" fill-opacity="0.05" stroke="none"/>
+    <text x="50" y="72" text-anchor="middle" font-family="SF Mono, Fira Code, Consolas, monospace" font-size="42" font-weight="bold" fill="#00ff88">W</text>
+  </g>
+
+  <!-- Title -->
+  <text x="420" y="195" text-anchor="middle" font-family="SF Pro Display, -apple-system, Helvetica, Arial, sans-serif" font-size="36" font-weight="bold" fill="#e0e0e0" letter-spacing="-1">
+    WARDEN
+  </text>
+
+  <!-- Tagline -->
+  <text x="420" y="225" text-anchor="middle" font-family="SF Pro Display, -apple-system, Helvetica, Arial, sans-serif" font-size="16" fill="#888">
+    Your AI agent burns tokens on noise. Warden stops that.
+  </text>
+
+  <!-- Stats line -->
+  <text x="420" y="260" text-anchor="middle" font-family="SF Mono, Fira Code, Consolas, monospace" font-size="13" fill="#00ff88">
+    91% measured reduction · 100% verbatim guard · 30+ agents · free · local only
+  </text>
+
+  <!-- Install command -->
+  <rect x="220" y="278" width="400" height="28" rx="6" fill="#141414" stroke="#222" stroke-width="1"/>
+  <text x="240" y="297" font-family="SF Mono, Fira Code, Consolas, monospace" font-size="12" fill="#e0e0e0">
+    $ npm install -g warden &amp;&amp; warden init
+  </text>
+
+  <!-- Corner accents -->
+  <rect x="0" y="0" width="4" height="320" fill="url(#accent)" opacity="0.3"/>
+  <rect x="836" y="0" width="4" height="320" fill="url(#accent)" opacity="0.3"/>
+</svg>

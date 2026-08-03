@@ -1,0 +1,21 @@
+PASS test auth
+PASS test user
+PASS test config
+PASS test store
+FAIL test pruner
+  Error: guard check failed at line 42 in guard.ts
+  at PruningEngine.prune (index.ts:55)
+  at Warden.pruneCall (warden.ts:120)
+PASS test classifier
+PASS test eval gate
+PASS test sqlite
+PASS test mcp server
+PASS test cli
+PASS test license
+PASS test dashboard
+PASS test watchdog
+PASS test budget
+PASS test audit export
+PASS test slack alerts
+PASS test rules
+PASS test autopromote
