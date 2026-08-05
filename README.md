@@ -15,16 +15,6 @@
   <a href="https://github.com/rynald0cst0ltziam/Warden-AI/commits/main"><img src="https://img.shields.io/github/last-commit/rynald0cst0ltziam/Warden-AI?style=flat-square" alt="Last commit"></a>
 </p>
 
-<p align="center">
-  <a href="#install">Install</a> ·
-  <a href="#before--after">Before / After</a> ·
-  <a href="#what-it-does">What it does</a> ·
-  <a href="#trust-guard">Trust guard</a> ·
-  <a href="#commands">Commands</a> ·
-  <a href="#mcp-tools">MCP tools</a> ·
-  <a href="#privacy">Privacy</a>
-</p>
-
 <br>
 
 Every token your agent spends on noise is a token it didn't spend on your actual problem. **Warden fixes this.**
@@ -36,30 +26,31 @@ Warden is an MCP server that drops into Claude Code, Cursor, Codex, Windsurf, Cl
 ## Install
 
 ```bash
-# npm
 npm install -g warden-ai && warden init
+```
 
+```bash
 # or curl (macOS · Linux · WSL · Git Bash)
 curl -fsSL https://raw.githubusercontent.com/rynald0cst0ltziam/Warden-AI/main/install.sh | bash
 ```
 
-~10 seconds · Node ≥ 22.5 · skips agents you don't have · safe to re-run
+~10 seconds · Node >= 22.5 · skips agents you don't have · safe to re-run
 
-`warden init` does everything:
+`warden init` does everything automatically:
 
-| | Step | What happens |
-|:-:|:-----|:-------------|
-| 1 | **Register** | Warden registered as MCP server in all detected agents (30+) |
-| 2 | **Rules** | Agent rules files written (CLAUDE.md, AGENTS.md, .cursorrules, etc.) |
-| 3 | **Index** | Code index built — call graph, imports, symbols, dead code |
-| 4 | **Compress** | Memory files compressed to save tokens every future session |
+| Step | What happens |
+|:-----|:-------------|
+| **Register** | Warden registered as MCP server in all detected agents (30+) |
+| **Rules** | Agent rules files written (CLAUDE.md, AGENTS.md, .cursorrules, etc.) |
+| **Index** | Code index built — call graph, imports, symbols, dead code |
+| **Compress** | Memory files compressed to save tokens every future session |
 
-**Restart your IDE. Start working normally.** Warden runs automatically — no commands to remember, no settings to tune, no levels to pick. Max compression is always on.
+Restart your IDE. Start working normally. Warden runs automatically — no commands to remember, no settings to tune, no levels to pick. Max compression is always on.
 
 > **See it working:** your agent prints `‹warden› saved 4295 tokens (79%)` on every tool call. Run `warden hud` for a live terminal HUD. Run `warden dashboard` for a web UI at http://localhost:7878.
 
 <details>
-<summary><b>Install for one agent, or see what's detected</b></summary>
+<summary>Install for one agent, or see what's detected</summary>
 
 ```bash
 warden doctor          # see which agents are detected (16 checks)
@@ -118,16 +109,16 @@ Every line in the pruned output exists verbatim in the raw — verified by the t
 
 **Eight layers. One MCP server. Zero config.**
 
-| # | Layer | What it does | Savings |
-|:-:|:------|:-------------|:-------:|
-| 1 | **Code intelligence** | Index functions, imports, call sites. Query call graph, impact, dead code | 100x fewer round trips |
-| 2 | **Context selection** | Recommends files for the task with 2-hop symbol expansion | 80%+ smaller context |
-| 3 | **Tool output pruning** | `warden_grep`, `warden_file_read`, `warden_run_tests`, `warden_run_command` | 50-91% per call |
-| 4 | **Agent memory** | Decisions persist across sessions, auto-surface at start | 0 repeated context |
-| 5 | **Response compression** | Rules drop filler, preamble, narration. Code stays verbatim | 45-65% per reply |
-| 6 | **File compression** | `warden compress` strips filler from memory files, no LLM call | up to 32% per file |
-| 7 | **Description compression** | 24 tool descriptions compressed before sending | ~41% per turn |
-| 8 | **Session continuity** | `warden_handoff` reads previous session at start, writes at end | 0 cold starts |
+| Layer | What it does | Savings |
+|:------|:-------------|:-------:|
+| **Code intelligence** | Index functions, imports, call sites. Query call graph, impact, dead code | 100x fewer round trips |
+| **Context selection** | Recommends files for the task with 2-hop symbol expansion | 80%+ smaller context |
+| **Tool output pruning** | `warden_grep`, `warden_file_read`, `warden_run_tests`, `warden_run_command` | 50-91% per call |
+| **Agent memory** | Decisions persist across sessions, auto-surface at start | 0 repeated context |
+| **Response compression** | Rules drop filler, preamble, narration. Code stays verbatim | 45-65% per reply |
+| **File compression** | `warden compress` strips filler from memory files, no LLM call | up to 32% per file |
+| **Description compression** | 24 tool descriptions compressed before sending | ~41% per turn |
+| **Session continuity** | `warden_handoff` reads previous session at start, writes at end | 0 cold starts |
 
 ### Safety net — always on
 
