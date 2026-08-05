@@ -25,13 +25,22 @@ Warden is an MCP server that drops into Claude Code, Cursor, Codex, Windsurf, Cl
 
 ## Install
 
+**All platforms** (macOS, Linux, Windows, WSL):
+
 ```bash
 npm install -g warden-ai && warden init
 ```
 
+**macOS / Linux / WSL** (curl one-liner):
+
 ```bash
-# or curl (macOS · Linux · WSL · Git Bash)
 curl -fsSL https://raw.githubusercontent.com/rynald0cst0ltziam/Warden-AI/main/install.sh | bash
+```
+
+**Windows** (PowerShell):
+
+```powershell
+npm install -g warden-ai; warden init
 ```
 
 ~10 seconds · Node >= 22.5 · skips agents you don't have · safe to re-run
@@ -252,9 +261,27 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 - **Node.js >= 22.5** (uses built-in `node:sqlite`)
 - **Any MCP-compatible AI coding agent** (30+ supported)
 
+## Tech stack
+
+| Component | Technology |
+|:----------|:-----------|
+| Runtime | Node.js 22.5+ (built-in `node:sqlite`, no native deps) |
+| Language | TypeScript 5.x, ESM |
+| MCP protocol | @modelcontextprotocol/sdk |
+| Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
+| Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
+| Build | tsup (esbuild) |
+| Tests | Vitest (244 tests, 20 files) |
+| Search | ripgrep (auto-detected, optional) |
+| Dashboard | HTTP server, localhost-only, CSP headers |
+| CLI | Commander.js |
+| License | PolyForm Shield 1.0.0 |
+
 ## License
 
-**PolyForm Shield 1.0.0** — source-available, free to use for everyone (including commercial use), no paywall, no subscription, no telemetry. See [LICENSE](LICENSE) for the full text and [TRADEMARK.md](TRADEMARK.md) for trademark terms.
+**PolyForm Shield 1.0.0** — source-available, free for everyone including commercial use. The only restriction: you can't repackage Warden and sell it as a competing product. This protects the project while keeping it fully free for all users.
+
+**Why not MIT?** MIT allows anyone to take the code, rebrand it, and sell it as a competing product — no protection for the original project. PolyForm Shield gives you all the freedoms of MIT (read, use, modify, self-host, commercial use) while preventing competitors from freeloading on the work. See [LICENSE](LICENSE) for the full text and [TRADEMARK.md](TRADEMARK.md) for trademark terms.
 
 ## Support Warden
 
