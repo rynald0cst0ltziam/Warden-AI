@@ -1,10 +1,10 @@
 {
   "name": "warden-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
-  "author": "Warden",
+  "author": "Rynaldo Stoltz",
   "repository": {
     "type": "git",
     "url": "https://github.com/rynald0cst0ltziam/Warden-AI.git"
@@ -27,7 +27,7 @@
     "windsurf"
   ],
   "bin": {
-    "warden": "./bin/warden.js"
+    "warden": "bin/warden.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
