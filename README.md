@@ -33,11 +33,13 @@ npm install -g warden-ai && warden init
 curl -fsSL https://raw.githubusercontent.com/rynald0cst0ltziam/Warden-AI/main/install.sh | bash
 ```
 
-**Windows** (PowerShell):
+**Windows** (PowerShell one-liner):
 
 ```powershell
-npm install -g warden-ai; warden init
+irm https://raw.githubusercontent.com/rynald0cst0ltziam/Warden-AI/main/install.ps1 | iex
 ```
+
+> Windows users: do NOT use the curl command in CMD or PowerShell — `bash` triggers WSL on Windows. Use the PowerShell or npm command above.
 
 ~10 seconds · Node >= 22.5 · skips agents you don't have · safe to re-run
 
