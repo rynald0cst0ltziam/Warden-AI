@@ -27,8 +27,8 @@ export const TASK_TYPES: TaskType[] = [
 
 export interface TaskContext {
   type: TaskType;
-  /** Free-text, e.g. "user is debugging a null-pointer in auth.py". */
-  relevanceHint: string;
+  /** Free-text, e.g. "user is debugging a null-pointer in auth.py". May be empty. */
+  relevanceHint?: string;
   /** The user message that triggered the current turn (truncated). */
   userMessage: string;
   /** Which tool is about to be called, if known. */

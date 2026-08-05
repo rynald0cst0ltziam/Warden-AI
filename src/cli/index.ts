@@ -37,6 +37,8 @@ import { writeRules, writeGlobalRules, detectAgentConfigs } from "./rules.js";
 import { DEFAULT_OUTPUT_LEVEL, type OutputLevel } from "../output/index.js";
 import { runDoctor } from "./doctor.js";
 import { ccrSummary, ccrCleanup } from "../ccr/index.js";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 
 const TOOL_TYPES: ToolType[] = [
   "grep",
@@ -1177,8 +1179,6 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
 const invoked = (() => {
   try {
     if (!process.argv[1]) return false;
-    const { pathToFileURL } = require("node:url") as typeof import("node:url");
-    const { resolve } = require("node:path") as typeof import("node:path");
     // Strip any surrounding quotes that may have been passed through
     // from a broken MCP config (e.g. "\"C:\\path\\cli.js\"" → "C:\path\cli.js").
     const argvPath = process.argv[1].replace(/^"(.*)"$/, "$1");

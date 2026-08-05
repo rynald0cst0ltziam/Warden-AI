@@ -26,7 +26,7 @@ export const genericModule: PruneModule = {
   prune(raw: string, task: TaskContext, _opts: PruneOptions): PruneResult {
     const tokensFull = approxTokens(raw);
     const lines = raw.split(/\r?\n/);
-    const hint = task.relevanceHint.toLowerCase();
+    const hint = (task.relevanceHint ?? "").toLowerCase();
     const hintTokens = hint.split(/[^a-z0-9_]+/).filter((t) => t.length > 2);
 
     if (lines.length <= 80) {

@@ -42,7 +42,7 @@ export function structuralParity(
 ): number {
   if (raw.length === 0) return 1;
   const rawLines = raw.split(/\r?\n/);
-  const hint = task.relevanceHint.toLowerCase();
+  const hint = (task.relevanceHint ?? "").toLowerCase();
   const hintTokens = hint.split(/[^a-z0-9_]+/).filter((t) => t.length > 2);
   const SIGNAL =
     /\b(error|err:|exception|traceback|panic|fatal|fail|failed|failure|✗|✘|not ok)\b/i;

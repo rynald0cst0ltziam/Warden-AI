@@ -81,7 +81,7 @@ function findRelevanceRange(
   lines: string[],
   task: TaskContext,
 ): { start: number; end: number } | null {
-  const hint = task.relevanceHint.toLowerCase();
+  const hint = (task.relevanceHint ?? "").toLowerCase();
   const tokens = hint.split(/[^a-z0-9_]+/).filter((t) => t.length > 2);
   if (tokens.length === 0) return null;
   // Find the first line that mentions a hint token AND looks like a header,
