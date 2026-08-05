@@ -1,58 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="940" height="200" viewBox="0 0 940 200" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="210" viewBox="0 0 940 210" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="940" y2="200" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="0" y1="0" x2="940" y2="210" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0a0a0b"/>
       <stop offset="0.5" stop-color="#111114"/>
       <stop offset="1" stop-color="#0a0a0b"/>
     </linearGradient>
-    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#5eead4"/>
       <stop offset="1" stop-color="#2dd4bf"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.6">
-      <stop offset="0" stop-color="#5eead4" stop-opacity="0.08"/>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#131316"/>
+      <stop offset="1" stop-color="#0a0a0b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.15" cy="0.5" r="0.4">
+      <stop offset="0" stop-color="#5eead4" stop-opacity="0.06"/>
       <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <rect width="940" height="200" fill="url(#bg)"/>
-  <rect width="940" height="200" fill="url(#glow)"/>
+  <rect width="940" height="210" fill="url(#bg)"/>
+  <rect width="940" height="210" fill="url(#glow)"/>
 
-  <!-- Shield + W -->
-  <g transform="translate(80, 50)">
-    <path d="M36 0 L68 12 L68 44 Q68 78 36 92 Q4 78 4 44 L4 12 Z" fill="#0a0a0b" stroke="url(#teal)" stroke-width="1.5"/>
-    <path d="M36 5 L63 16 L63 43 Q63 73 36 85 Q9 73 9 43 L9 16 Z" fill="#5eead4" fill-opacity="0.06"/>
-    <text x="36" y="56" text-anchor="middle" font-family="monospace" font-size="30" font-weight="bold" fill="#5eead4">W</text>
+  <!-- Hex shield logo (matches site Logo.tsx) -->
+  <g transform="translate(70, 55)">
+    <!-- Outer hex -->
+    <path d="M40 4 L70 19 L70 49 L40 72 L10 49 L10 19 Z" fill="url(#shieldGrad)" stroke="url(#teal)" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Inner hex -->
+    <path d="M40 12 L62 23 L62 45 L40 60 L18 45 L18 23 Z" fill="none" stroke="#26262d" stroke-width="0.75" stroke-linejoin="round"/>
+    <!-- Left bracket { -->
+    <path d="M30 24 Q25 24 25 29 L25 33 Q25 36 20 36 Q25 36 25 39 L25 43 Q25 48 30 48" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Right bracket } -->
+    <path d="M50 24 Q55 24 55 29 L55 33 Q55 36 60 36 Q55 36 55 39 L55 43 Q55 48 50 48" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- W -->
+    <text x="40" y="42" text-anchor="middle" font-family="'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace" font-size="14" font-weight="bold" fill="#e8e8ea">W</text>
   </g>
 
   <!-- Title -->
-  <text x="185" y="72" font-family="sans-serif" font-size="34" font-weight="bold" fill="#e8e8ea" letter-spacing="-1">Warden</text>
+  <text x="185" y="78" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="36" font-weight="700" fill="#e8e8ea" letter-spacing="-1.5">Warden</text>
 
   <!-- Tagline -->
-  <text x="187" y="96" font-family="sans-serif" font-size="13" fill="#7a7a84">Structurally-verified context layer for AI coding agents</text>
+  <text x="187" y="103" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="400" fill="#8a8a94">Structurally-verified context layer for AI coding agents</text>
 
-  <!-- Feature pills -->
-  <g font-family="monospace" font-size="10">
-    <rect x="187" y="115" width="95" height="20" rx="10" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="234" y="128" text-anchor="middle" fill="#4ade80">50-90% cut</text>
+  <!-- Feature pills (rounded, matching site style) -->
+  <g font-family="'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace" font-size="10.5">
+    <rect x="187" y="122" width="98" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="236" y="136" text-anchor="middle" fill="#4ade80">50-90% cut</text>
 
-    <rect x="292" y="115" width="105" height="20" rx="10" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="344" y="128" text-anchor="middle" fill="#5eead4">100% verbatim</text>
+    <rect x="295" y="122" width="112" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="351" y="136" text-anchor="middle" fill="#5eead4">100% verbatim</text>
 
-    <rect x="407" y="115" width="80" height="20" rx="10" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="447" y="128" text-anchor="middle" fill="#fbbf24">30+ agents</text>
+    <rect x="417" y="122" width="84" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="459" y="136" text-anchor="middle" fill="#fbbf24">30+ agents</text>
 
-    <rect x="497" y="115" width="55" height="20" rx="10" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="524" y="128" text-anchor="middle" fill="#7a7a84">free</text>
+    <rect x="511" y="122" width="50" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="536" y="136" text-anchor="middle" fill="#8a8a94">free</text>
 
-    <rect x="562" y="115" width="70" height="20" rx="10" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="597" y="128" text-anchor="middle" fill="#7a7a84">local only</text>
+    <rect x="571" y="122" width="72" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="607" y="136" text-anchor="middle" fill="#8a8a94">local only</text>
   </g>
 
   <!-- Install command -->
-  <text x="187" y="165" font-family="monospace" font-size="12" fill="#565660">$ npm install -g warden-ai &amp;&amp; warden init</text>
+  <text x="187" y="172" font-family="'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace" font-size="12" font-weight="500" fill="#565660">$ npm install -g warden-ai &amp;&amp; warden init</text>
 
   <!-- Accent bars -->
-  <rect x="0" y="0" width="2" height="200" fill="url(#teal)" opacity="0.5"/>
-  <rect x="938" y="0" width="2" height="200" fill="url(#teal)" opacity="0.5"/>
+  <rect x="0" y="0" width="2" height="210" fill="url(#teal)" opacity="0.4"/>
+  <rect x="938" y="0" width="2" height="210" fill="url(#teal)" opacity="0.4"/>
 </svg>

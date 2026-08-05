@@ -348,7 +348,7 @@ export class SqliteStore {
     // Guard against anything that isn't a plain identifier / type so this can
     // never become an injection vector even if a caller passes dynamic input.
     const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
-    const TYPE_RE = /^[A-Za-z_][A-Za-z0-9_ ]*$/;
+    const TYPE_RE = /^[A-Za-z_][A-Za-z0-9_ .]*$/;
     if (!IDENT.test(table) || !IDENT.test(column) || !TYPE_RE.test(type)) {
       logger.warn("refusing unsafe column migration", { table, column, type });
       return;

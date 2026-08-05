@@ -7,13 +7,12 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=flat-square&color=blue" alt="npm"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Shield-yellow.svg?style=flat-square" alt="License"></a>
-  <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange?style=flat-square" alt="30+ agents"></a>
-  <a href="#trust-guard"><img src="https://img.shields.io/badge/trust%20guard-100%25%20pass-brightgreen?style=flat-square" alt="Trust Guard"></a>
-  <a href="#privacy"><img src="https://img.shields.io/badge/local%20first-no%20cloud-blue?style=flat-square" alt="Local First"></a>
-  <a href="https://github.com/rynald0cst0ltziam/Warden-AI/commits/main"><img src="https://img.shields.io/github/last-commit/rynald0cst0ltziam/Warden-AI?style=flat-square" alt="Last commit"></a>
-  <a href="https://warden-io.vercel.app"><img src="https://img.shields.io/badge/website-warden--io-blue?style=flat-square" alt="Website"></a>
+  <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=for-the-badge&color=blue" alt="npm"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Shield-yellow.svg?style=for-the-badge" alt="License"></a>
+  <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange.svg?style=for-the-badge" alt="30+ agents"></a>
+  <a href="#trust-guard"><img src="https://img.shields.io/badge/trust_guard-100%25_pass-brightgreen.svg?style=for-the-badge" alt="Trust Guard"></a>
+  <a href="#privacy"><img src="https://img.shields.io/badge/local_first-no_cloud-blue.svg?style=for-the-badge" alt="Local First"></a>
+  <a href="https://warden-io.vercel.app"><img src="https://img.shields.io/badge/website-warden--io-blue.svg?style=for-the-badge" alt="Website"></a>
 </p>
 
 <br>
