@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="docs/assets/warden-banner.png" alt="Warden" width="800">
+</p>
+
+<p align="center">
   <strong>Your AI agent burns tokens on noise. Warden stops that.</strong>
 </p>
 
