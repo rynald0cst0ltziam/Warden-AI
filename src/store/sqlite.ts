@@ -344,6 +344,14 @@ export class SqliteStore {
 
   /** Add a column if it doesn't already exist. Idempotent, crash-safe. */
   private ensureColumn(table: string, column: string, type: string): void {
+    // SQLite identifiers can't be bound as parameters, so these are interpolated.
+    // Guard against anything that isn't a plain identifier / type so this can
+    // never become an injection vector even if a caller passes dynamic input.
+    const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
+    if (!IDENT.test(table) || !IDENT.test(column) || !/^[A-Za-z0-9_ ()']+$/.test(type)) {
+      logger.warn("refusing unsafe column migration", { table, column, type });
+      return;
+    }
     try {
       const cols = this.db
         .prepare(`PRAGMA table_info(${table})`)
@@ -838,11 +846,21 @@ export class SqliteStore {
     tokensFull: number;
     tokensPruned: number;
   }): void {
+    // Upsert by hash. Use ON CONFLICT (not INSERT OR REPLACE) so that re-caching
+    // an identical output doesn't wipe the accessed_at / access_count columns,
+    // which INSERT OR REPLACE would reset by deleting and re-inserting the row.
     this.db
       .prepare(
-        `INSERT OR REPLACE INTO ccr_cache
+        `INSERT INTO ccr_cache
            (hash, raw_output, tool_type, rule_id, tokens_full, tokens_pruned, created_at)
-         VALUES (?,?,?,?,?,?,?)`,
+         VALUES (?,?,?,?,?,?,?)
+         ON CONFLICT(hash) DO UPDATE SET
+           raw_output = excluded.raw_output,
+           tool_type = excluded.tool_type,
+           rule_id = excluded.rule_id,
+           tokens_full = excluded.tokens_full,
+           tokens_pruned = excluded.tokens_pruned,
+           created_at = excluded.created_at`,
       )
       .run(
         opts.hash,

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse.",
   "type": "module",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "author": "Warden",
   "repository": {
     "type": "git",
@@ -41,7 +41,9 @@
   "files": [
     "dist",
     "bin",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "TRADEMARK.md"
   ],
   "engines": {
     "node": ">=22.5.0"

@@ -5,7 +5,7 @@
  * Indexing is incremental: only files that changed (by mtime) are re-parsed.
  * The index is stored per-project (identified by repoRoot).
  */
-import { readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, statSync, lstatSync, existsSync } from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
 import {
   parseFile,
@@ -186,10 +186,13 @@ export class CodeIndex {
         const fullPath = join(dir, entry);
         let stat;
         try {
-          stat = statSync(fullPath);
+          // lstat (not stat) so we can detect and skip symlinks — a symlink that
+          // points at a parent directory would otherwise cause infinite traversal.
+          stat = lstatSync(fullPath);
         } catch {
           continue;
         }
+        if (stat.isSymbolicLink()) continue;
         if (stat.isDirectory()) {
           if (!SKIP_DIRS.has(entry) && !entry.startsWith(".")) {
             queue.push(fullPath);

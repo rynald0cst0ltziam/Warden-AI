@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=flat-square&color=blue" alt="npm"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow.svg?style=flat-square" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Shield-yellow.svg?style=flat-square" alt="License"></a>
   <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange?style=flat-square" alt="30+ agents"></a>
   <a href="#tests"><img src="https://img.shields.io/badge/tests-244%20passing-brightgreen?style=flat-square" alt="Tests"></a>
   <a href="#trust-guard"><img src="https://img.shields.io/badge/trust%20guard-100%25%20pass-brightgreen?style=flat-square" alt="Trust Guard"></a>
@@ -74,13 +74,7 @@ Warden detects and registers for: Claude Code, Claude Desktop, Cursor, Windsurf,
 
 Same grep query. Same information. **79% fewer tokens.**
 
-<table>
-<tr>
-<th>🔴 Without Warden — 4,295 tokens</th>
-<th>🟢 With Warden — 883 tokens</th>
-</tr>
-<tr>
-<td>
+**Without Warden — 4,295 tokens:**
 
 ```text
 $ grep -rn "function auth" src/
@@ -88,25 +82,13 @@ src/auth/login.ts:15:export function login(user) {
 src/auth/login.ts:16:  const token = signJWT(user);
 src/auth/login.ts:17:  if (!token) throw new Error("no token");
 src/auth/login.ts:18:  return { token, user };
-src/auth/login.ts:19:}
-src/auth/middleware.ts:45:export function
-  authMiddleware(req, res, next) {
-src/auth/middleware.ts:46:  const token =
-  req.headers.authorization;
-src/auth/middleware.ts:47:  if (!token) return
-  res.status(401).send("no token");
-src/auth/middleware.ts:48:  try {
-src/auth/middleware.ts:49:    const payload = verify(token);
-src/auth/middleware.ts:50:    req.user = payload.user;
-src/auth/middleware.ts:51:    next();
-src/auth/middleware.ts:52:  } catch (e) {
-src/auth/middleware.ts:53:    return res.status(401).send(
-      "invalid token");
+src/auth/middleware.ts:45:export function authMiddleware(req, res, next) {
+src/auth/middleware.ts:46:  const token = req.headers.authorization;
+src/auth/middleware.ts:47:  if (!token) return res.status(401).send("no token");
 ... (138 more matches)
 ```
 
-</td>
-<td>
+**With Warden — 883 tokens:**
 
 ```text
 warden_grep({ pattern: "function auth" })
@@ -117,23 +99,13 @@ warden_grep({ pattern: "function auth" })
   guard: every line verbatim ✓
   saved: 4295 → 883 tokens (-79%)
 
-  src/auth/login.ts:15
-    export function login(user)
-  src/auth/login.ts:22
-    export function logout()
-  src/auth/middleware.ts:45
-    authMiddleware(req,res,next)
-  src/auth/token.ts:8
-    export function generateToken()
-  src/auth/token.ts:31
-    export function verifyToken()
-  ... 7 more
-  (use warden_retrieve for full)
+  src/auth/login.ts:15    export function login(user)
+  src/auth/login.ts:22    export function logout()
+  src/auth/middleware.ts:45    authMiddleware(req,res,next)
+  src/auth/token.ts:8     export function generateToken()
+  src/auth/token.ts:31    export function verifyToken()
+  ... 7 more (use warden_retrieve for full)
 ```
-
-</td>
-</tr>
-</table>
 
 Every line in the pruned output exists verbatim in the raw — verified by the trust guard.
 
@@ -145,14 +117,14 @@ Every line in the pruned output exists verbatim in the raw — verified by the t
 
 | # | Layer | What it does | Savings |
 |:-:|:------|:-------------|:-------:|
-| 1 | **Code intelligence** | Index functions, imports, call sites. Query call graph, impact, architecture, dead code | 100x fewer round trips |
-| 2 | **Context selection** | `warden_context_select` recommends files for the task — with 2-hop symbol expansion | 80%+ smaller context |
-| 3 | **Tool output pruning** | `warden_grep`, `warden_file_read`, `warden_run_tests`, `warden_run_command` — AST outlines for file reads | 50-91% per call |
-| 4 | **Agent memory** | Decisions persist across sessions. Auto-surfaces at session start | 0 repeated context |
-| 5 | **Response compression** | Rules drop filler, preamble, narration. Code/errors stay verbatim. Auto-clarity for safety | 45-65% per reply |
-| 6 | **File compression** | `warden compress` strips filler from memory files. Deterministic, no LLM call | up to 32% per file |
+| 1 | **Code intelligence** | Index functions, imports, call sites. Query call graph, impact, dead code | 100x fewer round trips |
+| 2 | **Context selection** | Recommends files for the task with 2-hop symbol expansion | 80%+ smaller context |
+| 3 | **Tool output pruning** | `warden_grep`, `warden_file_read`, `warden_run_tests`, `warden_run_command` | 50-91% per call |
+| 4 | **Agent memory** | Decisions persist across sessions, auto-surface at start | 0 repeated context |
+| 5 | **Response compression** | Rules drop filler, preamble, narration. Code stays verbatim | 45-65% per reply |
+| 6 | **File compression** | `warden compress` strips filler from memory files, no LLM call | up to 32% per file |
 | 7 | **Description compression** | 24 tool descriptions compressed before sending | ~41% per turn |
-| 8 | **Session continuity** | `warden_handoff` reads previous session at start, generates summary at end. Automatic | 0 cold starts |
+| 8 | **Session continuity** | `warden_handoff` reads previous session at start, writes at end | 0 cold starts |
 
 ### Safety net — always on
 
@@ -190,7 +162,7 @@ warden_search_symbols({ pattern: "auth" })
 // → 8 matches across 4 files
 ```
 
-Supports **TypeScript, JavaScript, Python** — functions, classes, methods, interfaces, types, enums, imports, call sites.
+Powered by **tree-sitter** (WASM — no native compilation, works on Windows/macOS/Linux). Supports **30+ languages** including TypeScript, JavaScript, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin, Scala, Lua, Dart, Elixir, and more — extracting functions, classes, methods, interfaces, types, enums, imports, and call sites.
 
 <br>
 
@@ -277,7 +249,7 @@ file on your machine. It works on a plane.
 
 The only network code: **localhost-only dashboard** — bound to 127.0.0.1, no external access.
 
-Audit it yourself — it's open source. The trust guard is 40 lines in `src/pruner/guard.ts`.
+Audit it yourself — the full source is public. The trust guard is 40 lines in `src/pruner/guard.ts`.
 
 <br>
 
@@ -301,7 +273,7 @@ Includes property-based guard tests that verify the trust invariant with randomi
 
 ## License
 
-**MIT** — free, open source, no paywall, no subscription, no telemetry.
+**PolyForm Shield 1.0.0** — source-available, free to use for everyone (including commercial use), no paywall, no subscription, no telemetry. See [LICENSE](LICENSE) for the full text and [TRADEMARK.md](TRADEMARK.md) for trademark terms.
 
 ---
 

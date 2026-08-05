@@ -323,9 +323,50 @@ export function detectAgentConfigs(repoRoot: string): RulesTarget[] {
   return targets;
 }
 
+// Markers delimiting Warden's managed section inside a rules file. Everything
+// between them is owned by Warden and replaced on re-run; everything outside is
+// the user's own content and is preserved verbatim.
+const WARDEN_BEGIN = "<!-- BEGIN WARDEN RULES (managed by `warden init` — do not edit inside this block) -->";
+const WARDEN_END = "<!-- END WARDEN RULES -->";
+
+/** The Warden section, wrapped in begin/end markers. */
+function wardenBlock(content: string): string {
+  return `${WARDEN_BEGIN}\n${content}\n${WARDEN_END}`;
+}
+
+/**
+ * Merge Warden's rules into an existing file without destroying user content.
+ *
+ * - If the file already has our BEGIN/END markers, replace only the region
+ *   between them — content before AND after is preserved. This makes re-running
+ *   `warden init` fully idempotent.
+ * - Otherwise, strip any legacy (pre-marker) Warden section written by older
+ *   versions, then append a fresh marked block after the user's content.
+ * - For a brand-new file, `existing` is "" and we just return the marked block.
+ */
+function mergeWardenRules(existing: string, content: string): string {
+  const block = wardenBlock(content);
+  if (!existing.trim()) return block + "\n";
+
+  const b = existing.indexOf(WARDEN_BEGIN);
+  const e = existing.indexOf(WARDEN_END);
+  if (b !== -1 && e !== -1 && e > b) {
+    const before = existing.slice(0, b).replace(/\s+$/, "");
+    const after = existing.slice(e + WARDEN_END.length).replace(/^\s+/, "");
+    const parts = [before, block, after].filter((p) => p.length > 0);
+    return parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+  }
+
+  // Legacy migration: older versions appended an unmarked "# Warden — …" section
+  // at the end of the file. Strip from that heading to EOF so we don't duplicate.
+  const legacyIdx = existing.indexOf("# Warden — Context Governance and Verification Layer");
+  const head = (legacyIdx !== -1 ? existing.slice(0, legacyIdx) : existing).replace(/\s+$/, "");
+  return (head.length > 0 ? head + "\n\n" + block : block) + "\n";
+}
+
 /**
  * Write the Warden rules file for each detected agent.
- * If AGENTS.md already exists, append the Warden rules to it.
+ * Existing files are merged (user content preserved); re-running is idempotent.
  */
 export function writeRules(repoRoot: string, level: OutputLevel = DEFAULT_OUTPUT_LEVEL): RulesTarget[] {
   const targets = detectAgentConfigs(repoRoot);
@@ -337,32 +378,17 @@ export function writeRules(repoRoot: string, level: OutputLevel = DEFAULT_OUTPUT
       const dir = dirname(target.path);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
-      if (target.agent === "AGENTS.md" && existsSync(target.path)) {
-        // Append to existing AGENTS.md
-        const existing = readFileSync(target.path, "utf8");
-        if (!existing.includes("Warden")) {
-          writeFileSync(target.path, existing + "\n\n" + content, "utf8");
-          target.written = true;
-          logger.info("appended warden rules to AGENTS.md", {
-            path: target.path,
-          });
-        } else {
-          // Overwrite the Warden section if it already exists
-          const withoutWarden = existing.split(/\n# Warden/)[0];
-          writeFileSync(target.path, withoutWarden + "\n" + content, "utf8");
-          target.written = true;
-          logger.info("updated warden rules in AGENTS.md", {
-            path: target.path,
-          });
-        }
-      } else if (target.agent === "AGENTS.md") {
-        // Create new AGENTS.md
-        writeFileSync(target.path, content, "utf8");
-        target.written = true;
-        logger.info("wrote AGENTS.md with warden rules", { path: target.path });
+      // Merge into existing content (preserving the user's own rules) for every
+      // agent file — CLAUDE.md, AGENTS.md, .cursorrules, .devin/rules, etc. are
+      // all commonly user-authored, so we never overwrite them wholesale.
+      const existing = existsSync(target.path)
+        ? readFileSync(target.path, "utf8")
+        : "";
+      const merged = mergeWardenRules(existing, content);
+      if (merged === existing) {
+        target.written = false; // already up to date — idempotent no-op
       } else {
-        // For .devin/rules, .cursorrules, CLAUDE.md — always write/overwrite
-        writeFileSync(target.path, content, "utf8");
+        writeFileSync(target.path, merged, "utf8");
         target.written = true;
         logger.info("wrote warden rules", {
           agent: target.agent,
@@ -424,22 +450,14 @@ export function writeGlobalRules(level: OutputLevel = DEFAULT_OUTPUT_LEVEL): Rul
       const dir = dirname(target.path);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
-      if (existsSync(target.path)) {
-        const existing = readFileSync(target.path, "utf8");
-        if (existing.includes("Warden")) {
-          // Replace existing Warden section
-          const withoutWarden = existing.split(/\n# Warden/)[0];
-          writeFileSync(target.path, withoutWarden + "\n" + content, "utf8");
-          target.written = true;
-          logger.info("updated global warden rules", { path: target.path });
-        } else {
-          // Append to existing global rules
-          writeFileSync(target.path, existing + "\n\n" + content, "utf8");
-          target.written = true;
-          logger.info("appended global warden rules", { path: target.path });
-        }
+      const existing = existsSync(target.path)
+        ? readFileSync(target.path, "utf8")
+        : "";
+      const merged = mergeWardenRules(existing, content);
+      if (merged === existing) {
+        target.written = false; // already up to date — idempotent no-op
       } else {
-        writeFileSync(target.path, content, "utf8");
+        writeFileSync(target.path, merged, "utf8");
         target.written = true;
         logger.info("wrote global warden rules", { path: target.path });
       }

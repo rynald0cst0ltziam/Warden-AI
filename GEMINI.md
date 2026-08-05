@@ -1,3 +1,4 @@
+<!-- BEGIN WARDEN RULES (managed by `warden init` — do not edit inside this block) -->
 # Warden — Context Governance and Verification Layer
 
 This project uses Warden, an MCP server that manages context across eight layers:
@@ -318,3 +319,5 @@ offline — no LLM call needed. Original backed up to `<file>.original`.
 For more aggressive compression, rephrase the remaining prose yourself —
 you have an LLM. Warden handles the deterministic bulk cut, you handle the
 rephrasing. Warden's validation ensures technical content survives either way.
+
+<!-- END WARDEN RULES -->

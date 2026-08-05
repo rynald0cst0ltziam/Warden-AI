@@ -10,6 +10,28 @@ import { logger } from "../logging/index.js";
 
 export type ExportFormat = "json" | "csv";
 
+/**
+ * Encode a value as a safe CSV cell.
+ * - Neutralizes formula/CSV injection: a leading =, +, -, @, tab or CR can be
+ *   interpreted as a formula by spreadsheet apps (Excel/Sheets). We prefix such
+ *   values with a single quote so they render as literal text.
+ * - Always quotes and doubles embedded quotes so commas/newlines are safe.
+ */
+function csvCell(value: unknown): string {
+  let s = value == null ? "" : String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+/** Parse a stored JSON column, returning the raw string if it isn't valid JSON. */
+function safeParse(json: string): unknown {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return json;
+  }
+}
+
 export interface ExportOptions {
   format: ExportFormat;
   /** Filter by rule id (optional). */
@@ -57,7 +79,7 @@ export function exportAuditTrail(
           ruleId: d.rule_id,
           toolType: d.tool_type,
           tokensSaved: d.tokens_saved,
-          detail: JSON.parse(d.detail_json),
+          detail: safeParse(d.detail_json),
         })),
       },
       null,
@@ -76,13 +98,13 @@ export function exportAuditTrail(
     ];
     const rows = decisions.map((d) =>
       [
-        d.id,
-        d.timestamp,
-        d.kind,
-        d.rule_id ?? "",
-        d.tool_type ?? "",
-        d.tokens_saved,
-        '"' + d.detail_json.replace(/"/g, '""') + '"',
+        csvCell(d.id),
+        csvCell(d.timestamp),
+        csvCell(d.kind),
+        csvCell(d.rule_id ?? ""),
+        csvCell(d.tool_type ?? ""),
+        csvCell(d.tokens_saved),
+        csvCell(d.detail_json),
       ].join(","),
     );
     content = [headers.join(","), ...rows].join("\n");

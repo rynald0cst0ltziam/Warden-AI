@@ -43,7 +43,15 @@ export async function runDashboard(opts: DashboardOptions = {}): Promise<void> {
   const server = createServer(async (req, res) => {
     try {
       if (req.url === "/" || req.url === "/index.html") {
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        // The dashboard only ever loads its own inline script/styles and talks
+        // to same-origin /api/* endpoints. A strict CSP is defense-in-depth on
+        // top of esc() so a weird repo/rule name can never execute as script.
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Security-Policy":
+            "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'",
+          "X-Content-Type-Options": "nosniff",
+        });
         res.end(dashboardHtml());
         return;
       }
