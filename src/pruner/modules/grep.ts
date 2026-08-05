@@ -1,4 +1,4 @@
-/**
+/*
  * grep / search pruning.
  *
  * Strategy: keep matches relevant to the current task, collapse repeated
@@ -77,7 +77,8 @@ function parseMatches(raw: string): ParsedMatch[] {
 }
 
 function relevanceScore(m: ParsedMatch, task: TaskContext): number {
-  const hint = task.relevanceHint.toLowerCase();
+  // Defensive: task.relevanceHint may be absent; use empty string.
+  const hint = (task.relevanceHint ?? "").toLowerCase();
   const text = m.text.toLowerCase();
   let s = 0;
   // relevance-hint token overlap
