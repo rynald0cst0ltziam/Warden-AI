@@ -370,7 +370,7 @@ const CONNECTIVE_FLUFF = [
 ];
 
 /** Strip filler words and verbose phrases from prose. */
-function stripFiller(text: string, level: CompressLevel): string {
+export function stripFiller(text: string, level: CompressLevel): string {
   let result = text;
 
   // 1. Remove filler words
@@ -461,7 +461,7 @@ function stripFiller(text: string, level: CompressLevel): string {
 }
 
 /** Collapse multi-clause sentences into fragments. */
-function fragmentSentences(text: string, level: CompressLevel): string {
+export function fragmentSentences(text: string, level: CompressLevel): string {
   if (level === "lite") return text;
 
   let result = text;
@@ -659,7 +659,7 @@ export function scoreSentence(sentence: string): number {
  *
  * This is the technique that gets ContextCompressionEngine from 25% to 48%.
  */
-function dropLowValueSentences(text: string): string {
+export function dropLowValueSentences(text: string): string {
   const paragraphs = text.split(/\n\n+/);
   const result: string[] = [];
 
@@ -722,14 +722,18 @@ function dropLowValueSentences(text: string): string {
       continue;
     }
 
-    result.push(kept.map((s) => s.sentence).join(" "));
+    // Join with newlines if any sentence contains a sentinel (protected content
+    // like headings must stay on their own line to preserve markdown structure).
+    const hasAnySentinel = kept.some((s) => s.hasSentinel);
+    const joinChar = hasAnySentinel ? "\n" : " ";
+    result.push(kept.map((s) => s.sentence).join(joinChar));
   }
 
   return result.join("\n\n");
 }
 
 /** Clean up whitespace after transformations — preserve markdown structure. */
-function cleanupWhitespace(text: string): string {
+export function cleanupWhitespace(text: string): string {
   let result = text;
 
   // Collapse multiple spaces (but not newlines)
