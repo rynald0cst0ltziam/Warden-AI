@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="docs/assets/warden-banner.png" alt="Warden" width="940">
-</p>
-
-<p align="center">
   <strong>Your AI agent burns tokens on noise. Warden stops that.</strong>
 </p>
 
@@ -279,9 +275,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 
 ## License
 
-**PolyForm Shield 1.0.0** — source-available, free for everyone including commercial use. The only restriction: you can't repackage Warden and sell it as a competing product. This protects the project while keeping it fully free for all users.
-
-**Why not MIT?** MIT allows anyone to take the code, rebrand it, and sell it as a competing product — no protection for the original project. PolyForm Shield gives you all the freedoms of MIT (read, use, modify, self-host, commercial use) while preventing competitors from freeloading on the work. See [LICENSE](LICENSE) for the full text and [TRADEMARK.md](TRADEMARK.md) for trademark terms.
+PolyForm Shield 1.0.0 — source-available, free for everyone including commercial use. See [LICENSE](LICENSE) and [TRADEMARK.md](TRADEMARK.md).
 
 ## Support Warden
 
