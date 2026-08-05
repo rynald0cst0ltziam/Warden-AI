@@ -13,6 +13,7 @@
   <a href="#trust-guard"><img src="https://img.shields.io/badge/trust%20guard-100%25%20pass-brightgreen?style=flat-square" alt="Trust Guard"></a>
   <a href="#privacy"><img src="https://img.shields.io/badge/local%20first-no%20cloud-blue?style=flat-square" alt="Local First"></a>
   <a href="https://github.com/rynald0cst0ltziam/Warden-AI/commits/main"><img src="https://img.shields.io/github/last-commit/rynald0cst0ltziam/Warden-AI?style=flat-square" alt="Last commit"></a>
+  <a href="https://warden-io.vercel.app"><img src="https://img.shields.io/badge/website-warden--io-blue?style=flat-square" alt="Website"></a>
 </p>
 
 <br>
@@ -256,13 +257,31 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 
 **PolyForm Shield 1.0.0** — source-available, free to use for everyone (including commercial use), no paywall, no subscription, no telemetry. See [LICENSE](LICENSE) for the full text and [TRADEMARK.md](TRADEMARK.md) for trademark terms.
 
+## Support Warden
+
+Warden is free and always will be. No paywall, no license key, no gated features. If it saves you tokens, consider a donation:
+
+| Amount | What it does |
+|:-------|:-------------|
+| **$5** | Say thanks — a small thank-you for a tool you use daily |
+| **$10** | Buy lunch — covers development time, the fair price for daily use |
+| **$25** | Fund a feature — supports ongoing development and the features you want next |
+
+**PayPal:** [paypal.me/rynald0s](https://paypal.me/rynald0s)
+
+**Bitcoin:** `1Jt3kETWcWkAsNKrc6WsPLKnkkSTe3Uv5o`
+
+Honor system. Warden is fully functional without donating. No gated features, no license keys, no "pro" version. If it saves you tokens and you want to support development, donate. If not, use it free. That's the deal.
+
 ---
 
 <p align="center">
   <a href="#install">Install</a> ·
+  <a href="https://warden-io.vercel.app">Website</a> ·
   <a href="https://github.com/rynald0cst0ltziam/Warden-AI">GitHub</a> ·
   <a href="https://www.npmjs.com/package/warden-ai">npm</a> ·
-  <a href="https://github.com/rynald0cst0ltziam/Warden-AI/issues">Issues</a>
+  <a href="https://github.com/rynald0cst0ltziam/Warden-AI/issues">Issues</a> ·
+  <a href="#support-warden">Donate</a>
 </p>
 
 <p align="center">

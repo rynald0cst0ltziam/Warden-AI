@@ -1,7 +1,7 @@
 # Warden Trademark Policy
 
-"Warden" and the Warden logo are trademarks of the Warden project maintainers.
-The source code is available under the PolyForm Shield License 1.0.0 (see
+"Warden" and the Warden logo are trademarks of Rynaldo Stoltz. The source
+code is available under the PolyForm Shield License 1.0.0 (see
 [`LICENSE`](./LICENSE)), but the **name and brand are not** covered by that
 license.
 

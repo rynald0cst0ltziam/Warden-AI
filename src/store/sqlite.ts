@@ -348,7 +348,8 @@ export class SqliteStore {
     // Guard against anything that isn't a plain identifier / type so this can
     // never become an injection vector even if a caller passes dynamic input.
     const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
-    if (!IDENT.test(table) || !IDENT.test(column) || !/^[A-Za-z0-9_ ()']+$/.test(type)) {
+    const TYPE_RE = /^[A-Za-z_][A-Za-z0-9_ ]*$/;
+    if (!IDENT.test(table) || !IDENT.test(column) || !TYPE_RE.test(type)) {
       logger.warn("refusing unsafe column migration", { table, column, type });
       return;
     }
@@ -849,6 +850,7 @@ export class SqliteStore {
     // Upsert by hash. Use ON CONFLICT (not INSERT OR REPLACE) so that re-caching
     // an identical output doesn't wipe the accessed_at / access_count columns,
     // which INSERT OR REPLACE would reset by deleting and re-inserting the row.
+    // Don't update created_at on conflict — it tracks original insertion for TTL.
     this.db
       .prepare(
         `INSERT INTO ccr_cache
@@ -859,8 +861,7 @@ export class SqliteStore {
            tool_type = excluded.tool_type,
            rule_id = excluded.rule_id,
            tokens_full = excluded.tokens_full,
-           tokens_pruned = excluded.tokens_pruned,
-           created_at = excluded.created_at`,
+           tokens_pruned = excluded.tokens_pruned`,
       )
       .run(
         opts.hash,
