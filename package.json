@@ -1,6 +1,6 @@
 {
   "name": "warden-ai",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
@@ -41,6 +41,7 @@
   "files": [
     "dist",
     "bin",
+    "docs/assets/warden-banner.png",
     "README.md",
     "LICENSE",
     "TRADEMARK.md"
@@ -73,6 +74,7 @@
   "devDependencies": {
     "@types/node": "26.1.1",
     "prettier": "3.9.5",
+    "puppeteer": "^25.5.0",
     "tsup": "8.5.1",
     "tsx": "4.23.1",
     "typescript": "7.0.2",

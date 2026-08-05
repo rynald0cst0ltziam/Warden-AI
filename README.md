@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/warden-banner.svg" alt="Warden" width="900">
+  <img src="docs/assets/warden-banner.png" alt="Warden" width="940">
 </p>
 
 <p align="center">

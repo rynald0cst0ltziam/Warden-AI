@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="940" height="210" viewBox="0 0 940 210" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="220" viewBox="0 0 940 220" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="940" y2="210" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="0" y1="0" x2="940" y2="220" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0a0a0b"/>
       <stop offset="0.5" stop-color="#111114"/>
       <stop offset="1" stop-color="#0a0a0b"/>
@@ -13,57 +13,55 @@
       <stop offset="0" stop-color="#131316"/>
       <stop offset="1" stop-color="#0a0a0b"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.15" cy="0.5" r="0.4">
-      <stop offset="0" stop-color="#5eead4" stop-opacity="0.06"/>
+    <radialGradient id="glow" cx="0.5" cy="0.35" r="0.5">
+      <stop offset="0" stop-color="#5eead4" stop-opacity="0.07"/>
       <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <rect width="940" height="210" fill="url(#bg)"/>
-  <rect width="940" height="210" fill="url(#glow)"/>
+  <rect width="940" height="220" fill="url(#bg)"/>
+  <rect width="940" height="220" fill="url(#glow)"/>
 
-  <!-- Hex shield logo (matches site Logo.tsx) -->
-  <g transform="translate(70, 55)">
-    <!-- Outer hex -->
+  <!-- Hex shield logo -->
+  <g transform="translate(80, 50)">
     <path d="M40 4 L70 19 L70 49 L40 72 L10 49 L10 19 Z" fill="url(#shieldGrad)" stroke="url(#teal)" stroke-width="2" stroke-linejoin="round"/>
-    <!-- Inner hex -->
     <path d="M40 12 L62 23 L62 45 L40 60 L18 45 L18 23 Z" fill="none" stroke="#26262d" stroke-width="0.75" stroke-linejoin="round"/>
     <!-- Left bracket { -->
     <path d="M30 24 Q25 24 25 29 L25 33 Q25 36 20 36 Q25 36 25 39 L25 43 Q25 48 30 48" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     <!-- Right bracket } -->
     <path d="M50 24 Q55 24 55 29 L55 33 Q55 36 60 36 Q55 36 55 39 L55 43 Q55 48 50 48" fill="none" stroke="#5eead4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     <!-- W -->
-    <text x="40" y="42" text-anchor="middle" font-family="'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace" font-size="14" font-weight="bold" fill="#e8e8ea">W</text>
+    <text x="40" y="42" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#e8e8ea">W</text>
   </g>
 
-  <!-- Title -->
-  <text x="185" y="78" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="36" font-weight="700" fill="#e8e8ea" letter-spacing="-1.5">Warden</text>
+  <!-- Title - using system fonts that sharp/librsvg supports -->
+  <text x="190" y="82" font-family="Arial,Helvetica,sans-serif" font-size="38" font-weight="bold" fill="#e8e8ea" letter-spacing="-1.5">Warden</text>
 
   <!-- Tagline -->
-  <text x="187" y="103" font-family="Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="13" font-weight="400" fill="#8a8a94">Structurally-verified context layer for AI coding agents</text>
+  <text x="192" y="108" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="normal" fill="#8a8a94">Your AI agent burns tokens on noise. Warden stops that.</text>
 
-  <!-- Feature pills (rounded, matching site style) -->
-  <g font-family="'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace" font-size="10.5">
-    <rect x="187" y="122" width="98" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="236" y="136" text-anchor="middle" fill="#4ade80">50-90% cut</text>
+  <!-- Feature pills -->
+  <g font-family="monospace" font-size="10.5" font-weight="bold">
+    <rect x="192" y="128" width="98" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="241" y="142" text-anchor="middle" fill="#4ade80">50-90% cut</text>
 
-    <rect x="295" y="122" width="112" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="351" y="136" text-anchor="middle" fill="#5eead4">100% verbatim</text>
+    <rect x="300" y="128" width="112" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="356" y="142" text-anchor="middle" fill="#5eead4">100% verbatim</text>
 
-    <rect x="417" y="122" width="84" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="459" y="136" text-anchor="middle" fill="#fbbf24">30+ agents</text>
+    <rect x="422" y="128" width="84" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="464" y="142" text-anchor="middle" fill="#fbbf24">30+ agents</text>
 
-    <rect x="511" y="122" width="50" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="536" y="136" text-anchor="middle" fill="#8a8a94">free</text>
+    <rect x="516" y="128" width="50" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="541" y="142" text-anchor="middle" fill="#8a8a94">free</text>
 
-    <rect x="571" y="122" width="72" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
-    <text x="607" y="136" text-anchor="middle" fill="#8a8a94">local only</text>
+    <rect x="576" y="128" width="72" height="22" rx="11" fill="#131316" stroke="#26262d" stroke-width="1"/>
+    <text x="612" y="142" text-anchor="middle" fill="#8a8a94">local only</text>
   </g>
 
   <!-- Install command -->
-  <text x="187" y="172" font-family="'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace" font-size="12" font-weight="500" fill="#565660">$ npm install -g warden-ai &amp;&amp; warden init</text>
+  <text x="192" y="178" font-family="monospace" font-size="13" font-weight="bold" fill="#5eead4">$ npm install -g warden-ai &amp;&amp; warden init</text>
 
   <!-- Accent bars -->
-  <rect x="0" y="0" width="2" height="210" fill="url(#teal)" opacity="0.4"/>
-  <rect x="938" y="0" width="2" height="210" fill="url(#teal)" opacity="0.4"/>
+  <rect x="0" y="0" width="2" height="220" fill="url(#teal)" opacity="0.4"/>
+  <rect x="938" y="0" width="2" height="220" fill="url(#teal)" opacity="0.4"/>
 </svg>
