@@ -1,9 +1,19 @@
 import { homedir } from "node:os";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const PKG_VERSION = "0.1.0";
+let _version = "0.0.0";
+try {
+  // In bundled output (dist/cli.js), import.meta.url points to dist/
+  // package.json is one level up from dist/
+  const here = dirname(fileURLToPath(import.meta.url));
+  const pkgPath = join(here, "..", "package.json");
+  _version = JSON.parse(readFileSync(pkgPath, "utf8")).version ?? "0.0.0";
+} catch {
+  // Fallback for environments where package.json isn't accessible
+}
+export const PKG_VERSION = _version;
 
 const here = dirname(fileURLToPath(import.meta.url));
 
