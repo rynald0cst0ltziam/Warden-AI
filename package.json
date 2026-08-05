@@ -1,6 +1,6 @@
 {
   "name": "warden-ai",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
@@ -60,7 +60,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
-    "postinstall": "node bin/postinstall.js"
+    "postinstall": "node bin/postinstall.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",

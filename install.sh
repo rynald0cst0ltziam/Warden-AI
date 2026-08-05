@@ -45,6 +45,17 @@ echo "  Installing warden globally..."
 npm install -g warden-ai 2>&1 | tail -1
 echo ""
 
+# Ensure npm global bin is in PATH (Windows Git Bash may not have it)
+NPM_BIN="$(npm prefix -g 2>/dev/null)/bin"
+if [ -d "$NPM_BIN" ] && ! command -v warden >/dev/null 2>&1; then
+  export PATH="$NPM_BIN:$PATH"
+fi
+# Windows: npm prefix -g returns the dir containing bin shims directly
+NPM_PREFIX="$(npm prefix -g 2>/dev/null)"
+if ! command -v warden >/dev/null 2>&1 && [ -f "$NPM_PREFIX/warden" ]; then
+  export PATH="$NPM_PREFIX:$PATH"
+fi
+
 # Run init
 echo "  Running warden init..."
 warden init
