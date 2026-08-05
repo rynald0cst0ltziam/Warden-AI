@@ -75,8 +75,10 @@ export function stripAnsi(text: string): string {
  */
 export function shortenPaths(text: string): string {
   // Match absolute paths (Unix and Windows)
+  // Unix: any path starting with / followed by a directory component.
+  // We use a broad pattern instead of hardcoding specific dir names.
   const unixPathRe =
-    /(?:^|[\s:(\[])(\/(?:Users|home|root|tmp|var|opt|usr|etc|mnt|media)\/[^\s:)\]]+)/g;
+    /(?:^|[\s:(\[])(\/[A-Za-z0-9_][A-Za-z0-9_./-]*\/[^\s:)\]]+)/g;
   const winPathRe = /(?:^|[\s:(\[])([A-Z]:\\[^\s:)\]]+)/g;
 
   const allPaths: string[] = [];
@@ -148,7 +150,7 @@ function longestCommonDirPrefix(paths: string[]): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Clean up JSON output by removing null, empty, and false values that add
+ * Clean up JSON output by removing null and empty values that add
  * tokens without adding information.
  *
  * Only applies to output that parses as valid JSON. If parsing fails, the
@@ -156,15 +158,14 @@ function longestCommonDirPrefix(paths: string[]): string {
  *
  * Removes:
  * - null values
- * - empty arrays []
- * - empty objects {}
  * - empty strings ""
- * - false boolean values (keeps true — true is informative, false is default)
  *
  * Preserves:
  * - All non-empty values
  * - The structure (keys, nesting)
  * - Numbers (including 0 — 0 is informative)
+ * - Boolean false (false is informative — it means "explicitly off")
+ * - Empty arrays/objects ([] means "no items", which is informative)
  */
 export function cleanJson(text: string): string {
   const trimmed = text.trim();
@@ -196,15 +197,15 @@ export function cleanJson(text: string): string {
   return result;
 }
 
-/** Recursively remove null, empty, and false values from a JSON structure. */
+/** Recursively remove null and empty string values from a JSON structure.
+ *  Preserves false, 0, empty arrays, and empty objects — all are informative. */
 function removeEmptyValues(value: unknown): unknown {
   if (value === null) return undefined;
-  if (value === false) return undefined;
   if (value === "") return undefined;
 
   if (Array.isArray(value)) {
     const cleaned = value.map(removeEmptyValues).filter((v) => v !== undefined);
-    return cleaned.length === 0 ? undefined : cleaned;
+    return cleaned; // keep empty arrays — [] means "no items"
   }
 
   if (typeof value === "object" && value !== null) {
@@ -215,10 +216,10 @@ function removeEmptyValues(value: unknown): unknown {
         result[key] = cleaned;
       }
     }
-    return Object.keys(result).length === 0 ? undefined : result;
+    return result; // keep empty objects — {} means "no properties"
   }
 
-  return value;
+  return value; // preserve false, 0, and all other primitives
 }
 
 // ---------------------------------------------------------------------------

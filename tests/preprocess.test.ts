@@ -84,20 +84,20 @@ describe("cleanJson", () => {
     expect(result).toEqual({ a: 1, c: "text" });
   });
 
-  it("removes empty arrays and objects", () => {
+  it("preserves empty arrays and objects (they are informative)", () => {
     const input = JSON.stringify({ a: 1, b: [], c: {}, d: "text" });
     const result = JSON.parse(cleanJson(input));
-    expect(result).toEqual({ a: 1, d: "text" });
+    expect(result).toEqual({ a: 1, b: [], c: {}, d: "text" });
   });
 
-  it("removes false values but keeps true", () => {
+  it("preserves false values (false is informative)", () => {
     const input = JSON.stringify({
       active: true,
       inactive: false,
       name: "test",
     });
     const result = JSON.parse(cleanJson(input));
-    expect(result).toEqual({ active: true, name: "test" });
+    expect(result).toEqual({ active: true, inactive: false, name: "test" });
   });
 
   it("removes empty strings", () => {

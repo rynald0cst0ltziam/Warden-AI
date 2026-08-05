@@ -19,7 +19,7 @@
 export const WARDEN_MARKER = "‹warden›"; // prefix for annotations we add
 
 export function isAnnotation(line: string): boolean {
-  return line.startsWith(WARDEN_MARKER);
+  return line.trimStart().startsWith(WARDEN_MARKER);
 }
 
 /**
