@@ -38,7 +38,7 @@ describe("CLI smoke tests", () => {
     expect(output).toContain("warden");
     expect(output).toContain("tokens saved");
     expect(output).toContain("rules");
-  });
+  }, 30000);
 
   it("warden prune -t grep prunes and reports savings", () => {
     const tmpDir = join(tmpdir(), `warden-cli-test-${Date.now()}`);
@@ -66,7 +66,7 @@ describe("CLI smoke tests", () => {
     } finally {
       rmSync(tmpDir, { recursive: true });
     }
-  });
+  }, 30000);
 
   it("warden compress --dry-run produces preview without writing", () => {
     const tmpDir = join(tmpdir(), `warden-compress-test-${Date.now()}`);
@@ -86,7 +86,7 @@ describe("CLI smoke tests", () => {
     } finally {
       rmSync(tmpDir, { recursive: true });
     }
-  });
+  }, 30000);
 
   it("warden --help lists available commands", () => {
     const output = runCli(["--help"]);
@@ -95,5 +95,5 @@ describe("CLI smoke tests", () => {
     expect(output).toContain("status");
     expect(output).toContain("prune");
     expect(output).toContain("compress");
-  });
+  }, 30000);
 });

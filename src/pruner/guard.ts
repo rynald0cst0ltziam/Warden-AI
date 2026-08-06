@@ -18,6 +18,8 @@
  */
 export const WARDEN_MARKER = "‹warden›"; // prefix for annotations we add
 
+import { approxTokens } from "./types.js";
+
 export function isAnnotation(line: string): boolean {
   return line.trimStart().startsWith(WARDEN_MARKER);
 }
@@ -43,8 +45,8 @@ export function verifyInclusion(raw: string, pruned: string): boolean {
  * Returns true if pruned is smaller or equal, false if it's worse.
  */
 export function neverWorse(raw: string, pruned: string): boolean {
-  const rawTokens = Math.ceil(raw.length / 4);
-  const prunedTokens = Math.ceil(pruned.length / 4);
+  const rawTokens = approxTokens(raw);
+  const prunedTokens = approxTokens(pruned);
   return prunedTokens <= rawTokens;
 }
 

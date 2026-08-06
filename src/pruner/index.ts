@@ -14,6 +14,7 @@ import type {
   PruneResult,
   ToolType,
 } from "./types.js";
+import { approxTokens } from "./types.js";
 import { verifyInclusion, neverWorse } from "./guard.js";
 import { grepModule } from "./modules/grep.js";
 import { fileReadModule } from "./modules/fileread.js";
@@ -135,7 +136,7 @@ export class PruningEngine {
       const preprocBytesSaved = input.rawOutput.length - preprocessed.length;
       const preprocTokensSaved = Math.ceil(preprocBytesSaved / 4);
       result.removed.tokensRemoved += preprocTokensSaved;
-      result.tokensFull = Math.ceil(input.rawOutput.length / 4);
+      result.tokensFull = approxTokens(input.rawOutput);
       result.removed.summary += ` Preprocessing: ${stages.map((s) => s.name).join(", ")}.`;
     }
 
@@ -153,7 +154,7 @@ export class PruningEngine {
   /** Raw passthrough — used on guard failure or when pruning is disabled. */
   private fallback(input: PruneInput, ruleId: string): PruneResult {
     const { rawOutput } = input;
-    const tokens = Math.ceil(rawOutput.length / 4);
+    const tokens = approxTokens(rawOutput);
     return {
       toolType: input.toolType,
       prunedOutput: rawOutput,
