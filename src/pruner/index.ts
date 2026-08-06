@@ -133,8 +133,8 @@ export class PruningEngine {
 
     // Add preprocessing savings to the result
     if (stages.length > 0) {
-      const preprocBytesSaved = input.rawOutput.length - preprocessed.length;
-      const preprocTokensSaved = Math.ceil(preprocBytesSaved / 4);
+      const preprocTokensSaved =
+        approxTokens(input.rawOutput) - approxTokens(preprocessed);
       result.removed.tokensRemoved =
         (Number(result.removed.tokensRemoved) || 0) + preprocTokensSaved;
       result.tokensFull = approxTokens(input.rawOutput);
