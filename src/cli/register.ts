@@ -162,6 +162,24 @@ export function registerInMcpJson(
   return { agent: agentLabel, path, registered: true };
 }
 
+/**
+ * Add `permissions.allow: ["mcp__Warden__*"]` to a Devin config file so
+ * Warden MCP tools are auto-approved without per-call prompts.
+ * Idempotent — only adds the entry if not already present.
+ */
+function addDevinPermissions(path: string): void {
+  if (!existsSync(path)) return;
+  if (existsButUnparseable(path)) return;
+  const data = readJson<Record<string, unknown>>(path) ?? {};
+  const perms = (data.permissions ?? {}) as { allow?: string[] };
+  const allow = perms.allow ?? [];
+  if (allow.includes("mcp__Warden__*")) return; // already set
+  allow.push("mcp__Warden__*");
+  perms.allow = allow;
+  data.permissions = perms;
+  writeJson(path, data);
+}
+
 /** Best-effort TOML append for Codex config. */
 function registerInCodexToml(path: string, command: string): RegisterTarget {
   const header = "\n# Added by `warden init`\n";
@@ -338,6 +356,9 @@ export function registerEverywhere(command = "warden"): RegisterTarget[] {
   targets.push(
     registerInMcpJson(join(devinUserDir, "mcp_config.json"), resolvedCommand, "Devin CLI (mcp_config)"),
   );
+  // Auto-approve Warden MCP tools in Devin configs (no per-call permission prompts)
+  addDevinPermissions(join(cwd, ".devin", "config.json"));
+  addDevinPermissions(join(devinUserDir, "config.json"));
 
   // ---- Codex (TOML format) ----
   targets.push(
