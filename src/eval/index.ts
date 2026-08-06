@@ -246,10 +246,10 @@ export class EvalGate {
   /** Record a prune decision in the audit trail. */
   recordPrune(result: PruneResult, applied: boolean): void {
     this.store.addDecision({
-      kind: applied ? "prune" : "observe",
+      kind: applied ? (result.guardOk ? "prune" : "prune-guard-failed") : "observe",
       rule_id: result.ruleId,
       tool_type: result.toolType,
-      tokens_saved: applied ? result.removed.tokensRemoved : 0,
+      tokens_saved: applied && result.guardOk ? result.removed.tokensRemoved : 0,
       detail_json: JSON.stringify({
         guardOk: result.guardOk,
         tokensFull: result.tokensFull,

@@ -6,6 +6,7 @@
  * teams visibility into runaway spend.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -51,10 +52,26 @@ function loadState(): BudgetState {
   }
 }
 
+async function loadStateAsync(): Promise<BudgetState> {
+  const p = budgetPath();
+  try {
+    const data = await readFile(p, "utf8");
+    return JSON.parse(data) as BudgetState;
+  } catch {
+    return { caps: [], usage: {} };
+  }
+}
+
 function saveState(state: BudgetState): void {
   const dir = join(homedir(), ".warden");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   writeFileSync(budgetPath(), JSON.stringify(state, null, 2), "utf8");
+}
+
+async function saveStateAsync(state: BudgetState): Promise<void> {
+  const dir = join(homedir(), ".warden");
+  await mkdir(dir, { recursive: true });
+  await writeFile(budgetPath(), JSON.stringify(state, null, 2), "utf8");
 }
 
 /** Set or update a budget cap for a scope. */
@@ -115,7 +132,7 @@ export async function recordSpend(
   scope: string,
   tokens: number,
 ): Promise<BudgetUsage | null> {
-  const state = loadState();
+  const state = await loadStateAsync();
   const cap = state.caps.find((c) => c.scope === scope);
   if (!cap) return null;
 
@@ -143,7 +160,7 @@ export async function recordSpend(
     });
   }
 
-  saveState(state);
+  await saveStateAsync(state);
 
   return {
     scope,
