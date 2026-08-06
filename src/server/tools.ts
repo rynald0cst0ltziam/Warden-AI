@@ -109,6 +109,12 @@ function isRgAvailable(): boolean {
  * we're running from the right directory.
  */
 import type { ToolType } from "../pruner/types.js";
+import {
+  buildWardenMeta,
+  formatWardenAnnotation,
+  formatWardenMetaJson,
+  type WardenMeta,
+} from "../pruner/types.js";
 import { logger } from "../logging/index.js";
 
 export interface WrapperResult {
@@ -125,6 +131,8 @@ export interface WrapperResult {
   applied: boolean;
   /** Guard check passed. */
   guardOk: boolean;
+  /** Structured metadata for agent UI rendering. */
+  wardenMeta: WardenMeta;
 }
 
 /** Common logic: run the pruner on raw output and return the shipped version. */
@@ -143,6 +151,11 @@ async function pruneAndShip(
     toolName,
     pruneOptions,
   });
+  const wardenMeta = buildWardenMeta({
+    result: res.result,
+    stage: res.stage,
+    applied: res.applied,
+  });
   return {
     output: res.shipped,
     summary: res.result.removed.summary,
@@ -151,21 +164,25 @@ async function pruneAndShip(
     ruleId: res.result.ruleId,
     applied: res.applied,
     guardOk: res.result.guardOk,
+    wardenMeta,
   };
 }
 
 function formatOutput(r: WrapperResult, cumulativeSaved?: number): string {
-  const saved = r.tokensFull - r.tokensPruned;
-  const pct = r.tokensFull > 0 ? Math.round((saved / r.tokensFull) * 100) : 0;
   const lines = [
     r.output,
     "",
+    formatWardenAnnotation(r.wardenMeta),
     `‹warden› ${r.summary}`,
-    `‹warden› saved ${saved} tokens (${pct}%) | full=${r.tokensFull} pruned=${r.tokensPruned} | rule=${r.ruleId} guardOk=${r.guardOk}`,
   ];
+  if (r.wardenMeta.ccrHash) {
+    lines.push(`‹warden› retrieve full: warden_retrieve("${r.wardenMeta.ccrHash}")`);
+  }
   if (cumulativeSaved !== undefined && cumulativeSaved > 0) {
     lines.push(`‹warden› cumulative: ${cumulativeSaved} tokens saved this project`);
   }
+  // Structured metadata for agents that can parse it (compact JSON, clearly delimited).
+  lines.push(formatWardenMetaJson(r.wardenMeta));
   return lines.join("\n");
 }
 

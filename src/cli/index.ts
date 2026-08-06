@@ -361,12 +361,20 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
             taskHint: opts.hint,
           });
           process.stdout.write(res.shipped + "\n");
+          const { buildWardenMeta, formatWardenAnnotation, formatWardenMetaJson } = await import("../pruner/types.js");
+          const { extractCcrMarker } = await import("../ccr/index.js");
+          const ccrHash = extractCcrMarker(res.shipped);
+          const meta = buildWardenMeta({
+            result: res.result,
+            stage: res.stage,
+            applied: res.applied,
+            ccrHash,
+          });
           process.stderr.write(
             chalk.gray(
-              `\n‹warden› rule=${res.result.ruleId} stage=${res.stage} applied=${res.applied} ` +
-                `tokens full=${res.result.tokensFull} pruned=${res.result.tokensPruned} saved=${res.result.removed.tokensRemoved} ` +
-                `guardOk=${res.result.guardOk}\n` +
-                `‹warden› ${res.result.removed.summary}\n`,
+              `\n${formatWardenAnnotation(meta)}\n` +
+                `‹warden› ${res.result.removed.summary}\n` +
+                `${formatWardenMetaJson(meta)}\n`,
             ),
           );
         } finally {

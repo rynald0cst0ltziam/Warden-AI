@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="docs/assets/warden-banner.png" alt="Warden" width="800">
+ <img src="docs/assets/warden-banner.png" alt="Warden" width="800">
 </p>
 
 <p align="center">
-  <strong>Your AI agent burns tokens on noise. Warden stops that.</strong>
+ <strong>Your AI agent burns tokens on noise. Warden stops that.</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=for-the-badge&color=blue" alt="npm"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Shield-yellow.svg?style=for-the-badge" alt="License"></a>
-  <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange.svg?style=for-the-badge" alt="30+ agents"></a>
-  <a href="#trust-guard"><img src="https://img.shields.io/badge/trust_guard-100%25_pass-brightgreen.svg?style=for-the-badge" alt="Trust Guard"></a>
-  <a href="#privacy"><img src="https://img.shields.io/badge/local_first-no_cloud-blue.svg?style=for-the-badge" alt="Local First"></a>
-  <a href="https://warden-io.vercel.app"><img src="https://img.shields.io/badge/website-warden--io-blue.svg?style=for-the-badge" alt="Website"></a>
+ <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=for-the-badge&color=blue" alt="npm"></a>
+ <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Shield-yellow.svg?style=for-the-badge" alt="License"></a>
+ <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange.svg?style=for-the-badge" alt="30+ agents"></a>
+ <a href="#trust-guard"><img src="https://img.shields.io/badge/trust_guard-100%25_pass-brightgreen.svg?style=for-the-badge" alt="Trust Guard"></a>
+ <a href="#privacy"><img src="https://img.shields.io/badge/local_first-no_cloud-blue.svg?style=for-the-badge" alt="Local First"></a>
+ <a href="https://warden-io.vercel.app"><img src="https://img.shields.io/badge/website-warden--io-blue.svg?style=for-the-badge" alt="Website"></a>
 </p>
 
 <br>
@@ -167,7 +167,7 @@ warden_search_symbols({ pattern: "auth" })
 // → 8 matches across 4 files
 ```
 
-Powered by **tree-sitter** (WASM — no native compilation, works on Windows/macOS/Linux). Supports **30+ languages** including TypeScript, JavaScript, Python, Go, Rust, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin, Scala, Lua, Dart, Elixir, and more — extracting functions, classes, methods, interfaces, types, enums, imports, and call sites.
+Powered by **tree-sitter** (WASM — no native compilation, works on Windows/macOS/Linux). Supports **30+ languages** including TypeScript, JavaScript, Python, Go, Rust, Java,  C/C++, C#, Ruby, PHP, Swift, Kotlin, Scala, Lua, Dart, Elixir, and more — extracting functions, classes, methods, interfaces, types, enums, imports, and call sites.
 
 <br>
 
@@ -252,7 +252,7 @@ Your code, tool outputs, and pruning decisions stay in a local SQLite
 file on your machine. It works on a plane.
 ```
 
-The only network code: **localhost-only dashboard** — bound to 127.0.0.1, no external access.
+The only network code: **localhost-only dashboard** — bound to127.0.0.1, no external access.
 
 Audit it yourself — the full source is public. The trust guard is 40 lines in `src/pruner/guard.ts`.
 
@@ -277,11 +277,11 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |
-| License | PolyForm Shield 1.0.0 |
+| License | PolyForm Shield1.0.0 |
 
 ## License
 
-PolyForm Shield 1.0.0 — source-available, free for everyone including commercial use. See [LICENSE](LICENSE) and [TRADEMARK.md](TRADEMARK.md).
+PolyForm Shield1.0.0 — source-available, free for everyone including commercial use. See [LICENSE](LICENSE) and [TRADEMARK.md](TRADEMARK.md).
 
 ## Support Warden
 
@@ -302,14 +302,14 @@ Honor system. Warden is fully functional without donating. No gated features, no
 ---
 
 <p align="center">
-  <a href="#install">Install</a> ·
-  <a href="https://warden-io.vercel.app">Website</a> ·
-  <a href="https://github.com/rynald0cst0ltziam/Warden-AI">GitHub</a> ·
-  <a href="https://www.npmjs.com/package/warden-ai">npm</a> ·
-  <a href="https://github.com/rynald0cst0ltziam/Warden-AI/issues">Issues</a> ·
-  <a href="#support-warden">Donate</a>
+ <a href="#install">Install</a> ·
+ <a href="https://warden-io.vercel.app">Website</a> ·
+ <a href="https://github.com/rynald0cst0ltziam/Warden-AI">GitHub</a> ·
+ <a href="https://www.npmjs.com/package/warden-ai">npm</a> ·
+ <a href="https://github.com/rynald0cst0ltziam/Warden-AI/issues">Issues</a> ·
+ <a href="#support-warden">Donate</a>
 </p>
 
 <p align="center">
-  Made with ⚡ by Rynaldo Stoltz
+ Made with ⚡ by Rynaldo Stoltz
 </p>

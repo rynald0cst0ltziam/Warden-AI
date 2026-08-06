@@ -35,7 +35,18 @@ import {
   wardenRunTests,
   wardenRunCommand,
 } from "./tools.js";
-import { retrieveOriginal, retrieveSlice, ccrSummary, ccrCleanup } from "../ccr/index.js";
+import {
+  retrieveOriginal,
+  retrieveSlice,
+  ccrSummary,
+  ccrCleanup,
+  extractCcrMarker,
+} from "../ccr/index.js";
+import {
+  buildWardenMeta,
+  formatWardenAnnotation,
+  formatWardenMetaJson,
+} from "../pruner/types.js";
 import { compressDescription } from "../output/compress-descriptions.js";
 import { findRepoRoot, ensureWardenDir } from "../config/index.js";
 import { writeRules } from "../cli/rules.js";
@@ -178,17 +189,26 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         taskHint: args.taskHint,
         toolName: args.toolName ?? null,
       });
+      // Extract CCR hash from the shipped output if a marker was appended.
+      const ccrHash = extractCcrMarker(res.shipped);
+      const meta = buildWardenMeta({
+        result: res.result,
+        stage: res.stage,
+        applied: res.applied,
+        ccrHash,
+      });
       const text = [
-        // res.shipped is already the correct output: pruned when the rule is
-        // active/canary, safe-preprocessed raw when the rule is in shadow.
         res.shipped,
         "",
-        `‹warden summary› ${res.result.removed.summary}`,
-        `‹warden tokens› full=${res.result.tokensFull} pruned=${res.result.tokensPruned} saved=${res.result.removed.tokensRemoved}`,
-        `‹warden rule› ${res.result.ruleId} (stage=${res.stage}, applied=${res.applied}, guardOk=${res.result.guardOk})`,
-      ].join("\n");
+        formatWardenAnnotation(meta),
+        `‹warden› ${res.result.removed.summary}`,
+      ];
+      if (ccrHash) {
+        text.push(`‹warden› retrieve full: warden_retrieve("${ccrHash}")`);
+      }
+      text.push(formatWardenMetaJson(meta));
       return {
-        content: [{ type: "text", text }],
+        content: [{ type: "text", text: text.join("\n") }],
       };
     },
   );

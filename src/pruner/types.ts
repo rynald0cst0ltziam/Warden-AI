@@ -114,6 +114,99 @@ export interface PruneModule {
   ): PruneResult;
 }
 
+/**
+ * Structured metadata returned with every pruned tool output.
+ * Agents can use this to render badges, tooltips, and detail panels.
+ * Privacy-safe: contains only token counts, rule IDs, and summaries —
+ * never raw code content.
+ */
+export interface WardenMeta {
+  /** Rule that handled this call (e.g. "grep.relevance-collapse.v1"). */
+  ruleId: string;
+  /** Human-readable rule name (e.g. "grep relevance collapse"). */
+  ruleName?: string;
+  /** Lifecycle stage of the rule. */
+  stage: "shadow" | "canary" | "active" | "reverted";
+  /** Whether pruning was applied (true) or observed in shadow (false). */
+  applied: boolean;
+  /** Whether the trust guard verified the pruned output. */
+  guardOk: boolean;
+  /** Token count of the raw output. */
+  tokensFull: number;
+  /** Token count of the shipped (pruned) output. */
+  tokensPruned: number;
+  /** Tokens saved (tokensFull - tokensPruned, 0 if guardOk is false). */
+  tokensSaved: number;
+  /** Human-readable summary of what was removed. */
+  removedSummary: string;
+  /** Preprocessing stages applied (e.g. ["ansi-strip", "path-shorten"]). */
+  preprocStages?: string[];
+  /** CCR retrieval hash if the original was stored, null otherwise. */
+  ccrHash?: string | null;
+  /** ISO timestamp of the prune call. */
+  timestamp?: string;
+}
+
+/**
+ * Build a WardenMeta object from a PruneResult and context.
+ * Centralizes metadata construction so all output paths (MCP, CLI) are consistent.
+ */
+export function buildWardenMeta(opts: {
+  result: PruneResult;
+  stage: "shadow" | "canary" | "active" | "reverted";
+  applied: boolean;
+  preprocStages?: string[];
+  ccrHash?: string | null;
+}): WardenMeta {
+  const { result, stage, applied, preprocStages, ccrHash } = opts;
+  const tokensSaved = applied && result.guardOk
+    ? Math.max(0, result.tokensFull - result.tokensPruned)
+    : 0;
+  return {
+    ruleId: result.ruleId,
+    stage,
+    applied,
+    guardOk: result.guardOk,
+    tokensFull: result.tokensFull,
+    tokensPruned: result.tokensPruned,
+    tokensSaved,
+    removedSummary: result.removed.summary,
+    preprocStages,
+    ccrHash: ccrHash ?? null,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * Format the standardized inline annotation line.
+ * Compact, human-friendly, scannable:
+ *   ‹warden› saved=4295 (79%) rule=grep.relevance-collapse.v1 stage=active applied=true guardOk=true
+ */
+export function formatWardenAnnotation(meta: WardenMeta): string {
+  const pct = meta.tokensFull > 0
+    ? Math.round((meta.tokensSaved / meta.tokensFull) * 100)
+    : 0;
+  const parts = [
+    `saved=${meta.tokensSaved} (${pct}%)`,
+    `rule=${meta.ruleId}`,
+    `stage=${meta.stage}`,
+    `applied=${meta.applied}`,
+    `guardOk=${meta.guardOk}`,
+  ];
+  if (meta.ccrHash) {
+    parts.push(`ccr=${meta.ccrHash}`);
+  }
+  return `‹warden› ${parts.join(" ")}`;
+}
+
+/**
+ * Format the warden_meta as a JSON block for agents that can parse structured data.
+ * Delimited clearly so text-only agents show it as a compact block.
+ */
+export function formatWardenMetaJson(meta: WardenMeta): string {
+  return `‹warden_meta› ${JSON.stringify(meta)}`;
+}
+
 /** Rough token estimate (~4 chars/token). Good enough for relative comparison. */
 export function approxTokens(s: string): number {
   return Math.ceil(s.length / 4);
