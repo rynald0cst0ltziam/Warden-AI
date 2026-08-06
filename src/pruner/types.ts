@@ -200,6 +200,54 @@ export function formatWardenAnnotation(meta: WardenMeta): string {
 }
 
 /**
+ * Format a visual badge line with emoji icons, designed to be visible at a
+ * glance even in collapsed tool output. Prepended to the TOP of pruned output
+ * so it's the first thing the user sees.
+ *
+ * Format:
+ *   ⚡ Warden │ 7,182 tokens saved (94%) │ 🛡️ guard verified │ 📋 fileread.slice-outline.v1
+ *
+ * Or when no savings (passthrough):
+ *   ⚡ Warden │ passthrough (under threshold) │ 🛡️ guard verified
+ */
+export function formatWardenBadge(meta: WardenMeta): string {
+  const pct = meta.tokensFull > 0
+    ? Math.round((meta.tokensSaved / meta.tokensFull) * 100)
+    : 0;
+  const guardIcon = meta.guardOk ? "🛡️ guard ✓" : "🛡️ guard ✗";
+  const parts: string[] = [];
+
+  if (meta.tokensSaved > 0) {
+    parts.push(`⚡ ${meta.tokensSaved.toLocaleString()} tokens saved (${pct}%)`);
+  } else if (meta.applied) {
+    parts.push("⚡ passthrough (under threshold)");
+  } else {
+    parts.push(`⚡ shadow mode (observing)`);
+  }
+
+  parts.push(guardIcon);
+  parts.push(`📋 ${meta.ruleId}`);
+
+  return `‹warden› ${parts.join(" │ ")}`;
+}
+
+/**
+ * Format the cumulative savings line with a chart icon.
+ *   📊 Warden cumulative │ 48,608 tokens saved this project
+ */
+export function formatWardenCumulative(totalSaved: number): string {
+  return `‹warden› 📊 cumulative │ ${totalSaved.toLocaleString()} tokens saved this project`;
+}
+
+/**
+ * Format the CCR retrieval hint with a search icon.
+ *   🔍 Warden CCR │ warden_retrieve("745052e18208") or warden_retrieve("745052e18208", around="symbolName")
+ */
+export function formatWardenCcr(ccrHash: string): string {
+  return `‹warden› 🔍 retrieve │ warden_retrieve("${ccrHash}") or warden_retrieve("${ccrHash}", around="symbolName") or warden_retrieve("${ccrHash}", lines="120:170")`;
+}
+
+/**
  * Format the warden_meta as a JSON block for agents that can parse structured data.
  * Delimited clearly so text-only agents show it as a compact block.
  */

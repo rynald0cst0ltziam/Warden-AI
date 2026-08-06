@@ -360,8 +360,8 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
             userMessage: opts.message,
             taskHint: opts.hint,
           });
-          process.stdout.write(res.shipped + "\n");
-          const { buildWardenMeta, formatWardenAnnotation, formatWardenMetaJson } = await import("../pruner/types.js");
+          // Badge goes to stdout BEFORE the content (visible first)
+          const { buildWardenMeta, formatWardenAnnotation, formatWardenBadge, formatWardenCcr, formatWardenMetaJson } = await import("../pruner/types.js");
           const { extractCcrMarker } = await import("../ccr/index.js");
           const ccrHash = extractCcrMarker(res.shipped);
           const meta = buildWardenMeta({
@@ -370,10 +370,18 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
             applied: res.applied,
             ccrHash,
           });
+          // Badge to stdout (before content)
+          const badgeLines = [
+            formatWardenBadge(meta),
+            `‹warden› ${res.result.removed.summary}`,
+          ];
+          if (ccrHash) badgeLines.push(formatWardenCcr(ccrHash));
+          process.stdout.write(badgeLines.join("\n") + "\n\n");
+          process.stdout.write(res.shipped + "\n");
+          // Compact annotation + meta JSON to stderr (for machine parsing)
           process.stderr.write(
             chalk.gray(
               `\n${formatWardenAnnotation(meta)}\n` +
-                `‹warden› ${res.result.removed.summary}\n` +
                 `${formatWardenMetaJson(meta)}\n`,
             ),
           );

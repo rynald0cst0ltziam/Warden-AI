@@ -112,6 +112,9 @@ import type { ToolType } from "../pruner/types.js";
 import {
   buildWardenMeta,
   formatWardenAnnotation,
+  formatWardenBadge,
+  formatWardenCumulative,
+  formatWardenCcr,
   formatWardenMetaJson,
   type WardenMeta,
 } from "../pruner/types.js";
@@ -169,20 +172,27 @@ async function pruneAndShip(
 }
 
 function formatOutput(r: WrapperResult, cumulativeSaved?: number): string {
-  const lines = [
-    r.output,
-    "",
-    formatWardenAnnotation(r.wardenMeta),
+  // Badge at TOP — visible first, even in collapsed tool output
+  const top: string[] = [
+    formatWardenBadge(r.wardenMeta),
     `‹warden› ${r.summary}`,
   ];
   if (r.wardenMeta.ccrHash) {
-    lines.push(`‹warden› retrieve full: warden_retrieve("${r.wardenMeta.ccrHash}")`);
+    top.push(formatWardenCcr(r.wardenMeta.ccrHash));
   }
   if (cumulativeSaved !== undefined && cumulativeSaved > 0) {
-    lines.push(`‹warden› cumulative: ${cumulativeSaved} tokens saved this project`);
+    top.push(formatWardenCumulative(cumulativeSaved));
   }
-  // Structured metadata for agents that can parse it (compact JSON, clearly delimited).
-  lines.push(formatWardenMetaJson(r.wardenMeta));
+
+  const lines = [
+    ...top,
+    "",
+    r.output,
+    "",
+    // Compact annotation + structured metadata at bottom for machine parsing
+    formatWardenAnnotation(r.wardenMeta),
+    formatWardenMetaJson(r.wardenMeta),
+  ];
   return lines.join("\n");
 }
 

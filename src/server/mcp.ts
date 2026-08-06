@@ -45,6 +45,9 @@ import {
 import {
   buildWardenMeta,
   formatWardenAnnotation,
+  formatWardenBadge,
+  formatWardenCumulative,
+  formatWardenCcr,
   formatWardenMetaJson,
 } from "../pruner/types.js";
 import { compressDescription } from "../output/compress-descriptions.js";
@@ -197,16 +200,22 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         applied: res.applied,
         ccrHash,
       });
-      const text = [
-        res.shipped,
-        "",
-        formatWardenAnnotation(meta),
+      // Badge at TOP — visible first, even in collapsed tool output
+      const top: string[] = [
+        formatWardenBadge(meta),
         `‹warden› ${res.result.removed.summary}`,
       ];
       if (ccrHash) {
-        text.push(`‹warden› retrieve full: warden_retrieve("${ccrHash}")`);
+        top.push(formatWardenCcr(ccrHash));
       }
-      text.push(formatWardenMetaJson(meta));
+      const text = [
+        ...top,
+        "",
+        res.shipped,
+        "",
+        formatWardenAnnotation(meta),
+        formatWardenMetaJson(meta),
+      ];
       return {
         content: [{ type: "text", text: text.join("\n") }],
       };
