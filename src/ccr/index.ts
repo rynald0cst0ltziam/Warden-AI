@@ -216,9 +216,9 @@ export function retrieveSlice(
  * Returns the hash if found, null otherwise.
  */
 export function extractCcrMarker(prunedOutput: string): string | null {
-  const markerRe = /warden_retrieve\("([a-f0-9]{12})"\)/;
+  const markerRe = /warden_retrieve\("([a-fA-F0-9]{12})"\)/i;
   const match = markerRe.exec(prunedOutput);
-  return match?.[1] ?? null;
+  return match?.[1]?.toLowerCase() ?? null;
 }
 
 /**

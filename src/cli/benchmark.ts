@@ -11,12 +11,13 @@ import { Warden } from "../warden.js";
 import { compressFile } from "../compress/index.js";
 import { generateOutputRules, ESTIMATED_REDUCTION, DEFAULT_OUTPUT_LEVEL } from "../output/index.js";
 import { logger } from "../logging/index.js";
+import { approxTokens } from "../pruner/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Estimate token count (4 chars per token, rough approximation). */
+/** Estimate token count (delegates to canonical approxTokens). */
 function estTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  return approxTokens(text);
 }
 
 /** Format a number with thousands separators. */

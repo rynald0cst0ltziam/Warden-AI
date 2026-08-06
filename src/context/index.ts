@@ -18,6 +18,7 @@
  */
 import { readdirSync, statSync, readFileSync } from "node:fs";
 import { basename, extname, join, relative, sep } from "node:path";
+import { approxTokens } from "../pruner/types.js";
 
 export interface ContextRecommendation {
   filePath: string;
@@ -278,7 +279,7 @@ export async function selectContext(opts: {
       tokensFull += fileResult.totalLines * 8; // rough token estimate
       tokensCompact += fileResult.linesIncluded * 8;
       for (const ol of fileResult.outline) {
-        tokensCompact += Math.ceil(ol.header.length / 4);
+        tokensCompact += approxTokens(ol.header);
       }
     }
   }
@@ -330,7 +331,7 @@ export async function selectContext(opts: {
         expanded.push(depFile);
         existingPaths.add(normalized);
         const sigTokens = outline.reduce(
-          (acc, ol) => acc + Math.ceil(ol.header.length / 4),
+          (acc, ol) => acc + approxTokens(ol.header),
           0,
         );
         expandedTokens += sigTokens;
