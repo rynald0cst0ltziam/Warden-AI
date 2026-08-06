@@ -163,21 +163,84 @@ export function registerInMcpJson(
 }
 
 /**
- * Add `permissions.allow: ["mcp__Warden__*"]` to a Devin config file so
- * Warden MCP tools are auto-approved without per-call prompts.
+ * Add `permissions.allow: ["mcp__Warden__*"]` to a Devin or Claude Code config
+ * file so Warden MCP tools are auto-approved without per-call prompts.
+ * Both agents use the same `mcp__<Server>__<tool>` permission token format.
  * Idempotent — only adds the entry if not already present.
  */
-function addDevinPermissions(path: string): void {
+function addMcpPermissionAllow(path: string): void {
   if (!existsSync(path)) return;
   if (existsButUnparseable(path)) return;
   const data = readJson<Record<string, unknown>>(path) ?? {};
   const perms = (data.permissions ?? {}) as { allow?: string[] };
   const allow = perms.allow ?? [];
-  if (allow.includes("mcp__Warden__*")) return; // already set
+  if (allow.includes("mcp__Warden__*")) return;
   allow.push("mcp__Warden__*");
   perms.allow = allow;
   data.permissions = perms;
   writeJson(path, data);
+}
+
+/**
+ * Add `"Warden:*"` to the `mcpAllowlist` array in a Cursor `permissions.json`
+ * file so all Warden MCP tools run without approval prompts.
+ * Cursor uses `server:tool` format with `*` wildcard.
+ * Idempotent. Creates the file if it doesn't exist.
+ */
+function addCursorMcpAllowlist(path: string): void {
+  if (existsButUnparseable(path)) return;
+  const data = readJson<{ mcpAllowlist?: string[] }>(path) ?? {};
+  const allowlist = data.mcpAllowlist ?? [];
+  if (allowlist.includes("Warden:*")) return;
+  allowlist.push("Warden:*");
+  data.mcpAllowlist = allowlist;
+  writeJson(path, data);
+}
+
+/**
+ * Add `"*"` to the `autoApprove` array in a Cline/Roo Code MCP server entry
+ * so all Warden tools run without per-call prompts.
+ * Cline uses `autoApprove: ["tool_name"]` in the server config object.
+ * Idempotent — only modifies the Warden server entry.
+ */
+function addClineAutoApprove(path: string): void {
+  if (!existsSync(path)) return;
+  if (existsButUnparseable(path)) return;
+  const data = readJson<{ mcpServers?: Record<string, Record<string, unknown>> }>(path) ?? {};
+  const servers = data.mcpServers ?? {};
+  const warden = servers["Warden"] ?? servers["warden"];
+  if (!warden) return; // Warden not registered in this file
+  const autoApprove = (warden.autoApprove as string[] | undefined) ?? [];
+  if (autoApprove.includes("*")) return;
+  autoApprove.push("*");
+  warden.autoApprove = autoApprove;
+  // Normalize key to "Warden"
+  if (servers["warden"] && !servers["Warden"]) {
+    servers["Warden"] = warden;
+    delete servers["warden"];
+  }
+  data.mcpServers = servers;
+  writeJson(path, data);
+}
+
+/**
+ * Add `default_tools_approval_mode = "auto"` to the `[mcp_servers.Warden]`
+ * table in a Codex `config.toml` file so all Warden tools auto-approve.
+ * Idempotent — only adds the line if not already present.
+ */
+function addCodexAutoApprove(path: string): void {
+  if (!existsSync(path)) return;
+  const existing = readFileSync(path, "utf8");
+  // Check if Warden section exists and already has the setting
+  const wardenSection = existing.match(/\[mcp_servers\.Warden\]([\s\S]*?)(\n\[|\n$|$)/);
+  if (!wardenSection || !wardenSection[1]) return; // Warden not registered
+  if (wardenSection[1].includes("default_tools_approval_mode")) return; // already set
+  // Insert the setting right after the [mcp_servers.Warden] header
+  const updated = existing.replace(
+    /\[mcp_servers\.Warden\]/,
+    "[mcp_servers.Warden]\ndefault_tools_approval_mode = \"auto\"",
+  );
+  writeFileSync(path, updated, "utf8");
 }
 
 /** Best-effort TOML append for Codex config. */
@@ -185,7 +248,7 @@ function registerInCodexToml(path: string, command: string): RegisterTarget {
   const header = "\n# Added by `warden init`\n";
   // Escape backslashes for TOML string values (Windows paths)
   const tomlCommand = command.replace(/\\/g, "\\\\");
-  const block = `[mcp_servers.Warden]\ncommand = "${tomlCommand}"\nargs = ["serve"]\n`;
+  const block = `[mcp_servers.Warden]\ncommand = "${tomlCommand}"\nargs = ["serve"]\ndefault_tools_approval_mode = "auto"\n`;
   if (!existsSync(path)) {
     if (!existsSync(dirname(path)))
       mkdirSync(dirname(path), { recursive: true });
@@ -317,6 +380,8 @@ export function registerEverywhere(command = "warden"): RegisterTarget[] {
   targets.push(
     registerInMcpJson(join(cwd, ".mcp.json"), resolvedCommand, "Claude Code (project)"),
   );
+  // Auto-approve Warden MCP tools in Claude Code config
+  addMcpPermissionAllow(claudeHome);
 
   // ---- Cursor (global + repo-local) ----
   targets.push(
@@ -329,6 +394,9 @@ export function registerEverywhere(command = "warden"): RegisterTarget[] {
       "Cursor (project)",
     ),
   );
+  // Auto-approve Warden MCP tools in Cursor (permissions.json, server:tool format)
+  addCursorMcpAllowlist(join(home, ".cursor", "permissions.json"));
+  addCursorMcpAllowlist(join(cwd, ".cursor", "permissions.json"));
 
   // ---- Windsurf / Devin ----
   targets.push(
@@ -357,13 +425,15 @@ export function registerEverywhere(command = "warden"): RegisterTarget[] {
     registerInMcpJson(join(devinUserDir, "mcp_config.json"), resolvedCommand, "Devin CLI (mcp_config)"),
   );
   // Auto-approve Warden MCP tools in Devin configs (no per-call permission prompts)
-  addDevinPermissions(join(cwd, ".devin", "config.json"));
-  addDevinPermissions(join(devinUserDir, "config.json"));
+  addMcpPermissionAllow(join(cwd, ".devin", "config.json"));
+  addMcpPermissionAllow(join(devinUserDir, "config.json"));
 
   // ---- Codex (TOML format) ----
   targets.push(
     registerInCodexToml(join(home, ".codex", "config.toml"), resolvedCommand),
   );
+  // Auto-approve is built into the Codex TOML block (default_tools_approval_mode = "auto")
+  addCodexAutoApprove(join(home, ".codex", "config.toml"));
 
   // ---- Cline (VS Code extension, shared with Roo Code) ----
   const clineBase = isWin
@@ -404,6 +474,8 @@ export function registerEverywhere(command = "warden"): RegisterTarget[] {
       "Cline",
     ),
   );
+  // Auto-approve Warden tools in Cline (autoApprove: ["*"] in server entry)
+  addClineAutoApprove(join(clineBase, "cline_mcp_settings.json"));
 
   // ---- Roo Code (same architecture as Cline, different extension ID) ----
   const rooBase = isWin
@@ -444,6 +516,8 @@ export function registerEverywhere(command = "warden"): RegisterTarget[] {
       "Roo Code",
     ),
   );
+  // Auto-approve Warden tools in Roo Code (same format as Cline)
+  addClineAutoApprove(join(rooBase, "cline_mcp_settings.json"));
 
   // ---- Continue (open-source AI code assistant) ----
   const continueDir = join(home, ".continue");
