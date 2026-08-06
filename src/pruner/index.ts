@@ -135,7 +135,8 @@ export class PruningEngine {
     if (stages.length > 0) {
       const preprocBytesSaved = input.rawOutput.length - preprocessed.length;
       const preprocTokensSaved = Math.ceil(preprocBytesSaved / 4);
-      result.removed.tokensRemoved += preprocTokensSaved;
+      result.removed.tokensRemoved =
+        (Number(result.removed.tokensRemoved) || 0) + preprocTokensSaved;
       result.tokensFull = approxTokens(input.rawOutput);
       result.removed.summary += ` Preprocessing: ${stages.map((s) => s.name).join(", ")}.`;
     }

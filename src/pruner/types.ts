@@ -98,7 +98,15 @@ export interface PruneModule {
   readonly ruleId: string;
   /** Human-readable name shown in `warden status`. */
   readonly name: string;
-  /** Prune the raw output. Must only REMOVE content, never rewrite it. */
+  /**
+   * Prune the raw output. Must only REMOVE content, never rewrite it.
+   *
+   * Contract: every non-annotation line in the returned prunedOutput must
+   * appear verbatim in the raw input, including leading whitespace. The
+   * guard checks this with trimEnd() only — leading whitespace is
+   * semantically meaningful (code indentation) and must be preserved.
+   * Modules that alter indentation will fail the guard and fall back to raw.
+   */
   prune(
     rawOutput: string,
     task: TaskContext,
