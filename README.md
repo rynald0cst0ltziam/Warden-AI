@@ -1,5 +1,5 @@
 <p align="center">
- <img src="docs/assets/warden-banner.png" alt="Warden" width="800">
+ <img src="https://raw.githubusercontent.com/rynald0cst0ltziam/Warden-AI/main/docs/assets/warden-banner.png" alt="Warden" width="800">
 </p>
 
 <p align="center">
