@@ -25,17 +25,37 @@ export function isAnnotation(line: string): boolean {
 }
 
 /**
- * Verify the inclusion invariant. Returns true if every non-annotation line in
- * `pruned` is present verbatim in `raw` (ignoring trailing whitespace).
+ * Verify the inclusion invariant. 
+ * Enforces that every non-annotation line in `pruned` is present verbatim in `raw`,
+ * AND that the lines appear in the exact same relative sequence (no reordering or unauthorized duplication).
  */
 export function verifyInclusion(raw: string, pruned: string): boolean {
-  const rawLines = new Set<string>();
-  for (const l of raw.split(/\r?\n/)) rawLines.add(l.trimEnd());
-  for (const line of pruned.split(/\r?\n/)) {
+  const rawLines = raw.split(/\r?\n/).map(l => l.trimEnd());
+  const prunedLines = pruned.split(/\r?\n/);
+  
+  let rawIdx = 0;
+  
+  for (const line of prunedLines) {
     if (line.trim().length === 0) continue; // blank lines are fine
     if (isAnnotation(line)) continue; // we're allowed to add annotations
-    if (!rawLines.has(line.trimEnd())) return false;
+    
+    const target = line.trimEnd();
+    let found = false;
+    
+    // Scan forward in raw to find the next matching line.
+    // This strictly enforces subsequence (order and exact counts).
+    while (rawIdx < rawLines.length) {
+      if (rawLines[rawIdx] === target) {
+        found = true;
+        rawIdx++; // Consume this line so it can't be reused.
+        break;
+      }
+      rawIdx++;
+    }
+    
+    if (!found) return false;
   }
+  
   return true;
 }
 

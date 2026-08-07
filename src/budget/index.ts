@@ -2,22 +2,18 @@
  * Budget caps — enforce per-seat and per-project token spend limits.
  *
  * Tracks token spend per scope (seat/project) and logs alerts when caps
- * are exceeded. Pruning continues (safety first), but the log gives
- * teams visibility into runaway spend.
+ * are exceeded. Uses a global SQLite database to ensure atomic writes and
+ * prevent data corruption when multiple agents run concurrently.
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-
+import { DatabaseSync } from "node:sqlite";
 import { logger } from "../logging/index.js";
 
 export interface BudgetCap {
-  /** Scope name: "seat:alice@example.com" or "project:my-app". */
   scope: string;
-  /** Maximum tokens per billing period. */
   capTokens: number;
-  /** Billing period in days (default 30). */
   periodDays: number;
 }
 
@@ -26,52 +22,32 @@ export interface BudgetUsage {
   spent: number;
   cap: number;
   periodStart: string;
-  /** Whether the cap has been exceeded this period. */
   exceeded: boolean;
 }
 
-interface BudgetState {
-  caps: BudgetCap[];
-  usage: Record<
-    string,
-    { spent: number; periodStart: string; alerted: boolean }
-  >;
-}
+let _db: DatabaseSync | null = null;
 
-function budgetPath(): string {
-  return join(homedir(), ".warden", "budgets.json");
-}
-
-function loadState(): BudgetState {
-  const p = budgetPath();
-  if (!existsSync(p)) return { caps: [], usage: {} };
-  try {
-    return JSON.parse(readFileSync(p, "utf8")) as BudgetState;
-  } catch {
-    return { caps: [], usage: {} };
-  }
-}
-
-async function loadStateAsync(): Promise<BudgetState> {
-  const p = budgetPath();
-  try {
-    const data = await readFile(p, "utf8");
-    return JSON.parse(data) as BudgetState;
-  } catch {
-    return { caps: [], usage: {} };
-  }
-}
-
-function saveState(state: BudgetState): void {
+function getDb(): DatabaseSync {
+  if (_db) return _db;
   const dir = join(homedir(), ".warden");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(budgetPath(), JSON.stringify(state, null, 2), "utf8");
-}
-
-async function saveStateAsync(state: BudgetState): Promise<void> {
-  const dir = join(homedir(), ".warden");
-  await mkdir(dir, { recursive: true });
-  await writeFile(budgetPath(), JSON.stringify(state, null, 2), "utf8");
+  
+  _db = new DatabaseSync(join(dir, "budgets.db"));
+  _db.exec(`
+    PRAGMA journal_mode = WAL;
+    CREATE TABLE IF NOT EXISTS budget_caps (
+      scope TEXT PRIMARY KEY,
+      cap_tokens INTEGER NOT NULL,
+      period_days INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS budget_usage (
+      scope TEXT PRIMARY KEY,
+      spent INTEGER NOT NULL,
+      period_start TEXT NOT NULL,
+      alerted INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+  return _db;
 }
 
 /** Set or update a budget cap for a scope. */
@@ -80,47 +56,50 @@ export function setBudgetCap(
   capTokens: number,
   periodDays = 30,
 ): void {
-  const state = loadState();
-  const existing = state.caps.findIndex((c) => c.scope === scope);
-  const cap: BudgetCap = { scope, capTokens, periodDays };
-  if (existing >= 0) {
-    state.caps[existing] = cap;
-  } else {
-    state.caps.push(cap);
-  }
-  saveState(state);
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO budget_caps (scope, cap_tokens, period_days)
+    VALUES (?, ?, ?)
+    ON CONFLICT(scope) DO UPDATE SET
+      cap_tokens = excluded.cap_tokens,
+      period_days = excluded.period_days
+  `);
+  stmt.run(scope, capTokens, periodDays);
   logger.info("budget cap set", { scope, capTokens, periodDays });
 }
 
 /** Remove a budget cap. */
 export function removeBudgetCap(scope: string): void {
-  const state = loadState();
-  state.caps = state.caps.filter((c) => c.scope !== scope);
-  delete state.usage[scope];
-  saveState(state);
+  const db = getDb();
+  db.prepare("DELETE FROM budget_caps WHERE scope = ?").run(scope);
+  db.prepare("DELETE FROM budget_usage WHERE scope = ?").run(scope);
 }
 
 /** List all configured budget caps. */
 export function listBudgetCaps(): BudgetCap[] {
-  return loadState().caps;
+  const db = getDb();
+  const rows = db.prepare("SELECT * FROM budget_caps").all() as any[];
+  return rows.map((r) => ({
+    scope: r.scope,
+    capTokens: r.cap_tokens,
+    periodDays: r.period_days,
+  }));
 }
 
 /** Check if a period has rolled over and reset usage if so. */
-function maybeResetPeriod(
-  state: BudgetState,
-  scope: string,
-  cap: BudgetCap,
-): void {
-  const usage = state.usage[scope];
+function maybeResetPeriod(db: DatabaseSync, scope: string, periodDays: number): void {
+  const usage = db.prepare("SELECT * FROM budget_usage WHERE scope = ?").get(scope) as any;
   if (!usage) return;
-  const periodMs = cap.periodDays * 86_400_000;
-  const elapsed = Date.now() - new Date(usage.periodStart).getTime();
+  
+  const periodMs = periodDays * 86_400_000;
+  const elapsed = Date.now() - new Date(usage.period_start).getTime();
+  
   if (elapsed > periodMs) {
-    state.usage[scope] = {
-      spent: 0,
-      periodStart: new Date().toISOString(),
-      alerted: false,
-    };
+    db.prepare(`
+      UPDATE budget_usage 
+      SET spent = 0, period_start = ?, alerted = 0 
+      WHERE scope = ?
+    `).run(new Date().toISOString(), scope);
   }
 }
 
@@ -132,57 +111,71 @@ export async function recordSpend(
   scope: string,
   tokens: number,
 ): Promise<BudgetUsage | null> {
-  const state = await loadStateAsync();
-  const cap = state.caps.find((c) => c.scope === scope);
-  if (!cap) return null;
-
-  maybeResetPeriod(state, scope, cap);
-
-  if (!state.usage[scope]) {
-    state.usage[scope] = {
-      spent: 0,
-      periodStart: new Date().toISOString(),
-      alerted: false,
-    };
-  }
-
-  state.usage[scope]!.spent += tokens;
-  const usage = state.usage[scope]!;
-  const exceeded = usage.spent > cap.capTokens;
-
-  // Log alert on first crossing of the cap.
-  if (exceeded && !usage.alerted) {
-    usage.alerted = true;
-    logger.warn("budget cap exceeded", {
+  // Use synchronous db calls (WAL mode makes this extremely fast and safe)
+  const db = getDb();
+  
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const capRow = db.prepare("SELECT * FROM budget_caps WHERE scope = ?").get(scope) as any;
+    if (!capRow) {
+      db.exec("ROLLBACK");
+      return null;
+    }
+    
+    maybeResetPeriod(db, scope, capRow.period_days);
+    
+    // Insert or update usage
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO budget_usage (scope, spent, period_start, alerted)
+      VALUES (?, ?, ?, 0)
+      ON CONFLICT(scope) DO UPDATE SET spent = spent + ?
+    `).run(scope, tokens, now, tokens);
+    
+    const usage = db.prepare("SELECT * FROM budget_usage WHERE scope = ?").get(scope) as any;
+    const exceeded = usage.spent > capRow.cap_tokens;
+    
+    if (exceeded && usage.alerted === 0) {
+      db.prepare("UPDATE budget_usage SET alerted = 1 WHERE scope = ?").run(scope);
+      logger.warn("budget cap exceeded", {
+        scope,
+        spent: usage.spent,
+        cap: capRow.cap_tokens,
+      });
+    }
+    
+    db.exec("COMMIT");
+    
+    return {
       scope,
       spent: usage.spent,
-      cap: cap.capTokens,
-    });
+      cap: capRow.cap_tokens,
+      periodStart: usage.period_start,
+      exceeded,
+    };
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
   }
-
-  await saveStateAsync(state);
-
-  return {
-    scope,
-    spent: usage.spent,
-    cap: cap.capTokens,
-    periodStart: usage.periodStart,
-    exceeded,
-  };
 }
 
 /** Get current usage for all scopes with caps. */
 export function budgetReport(): BudgetUsage[] {
-  const state = loadState();
-  return state.caps.map((cap) => {
-    maybeResetPeriod(state, cap.scope, cap);
-    const usage = state.usage[cap.scope];
+  const db = getDb();
+  const caps = db.prepare("SELECT * FROM budget_caps").all() as any[];
+  
+  return caps.map((cap) => {
+    db.exec("BEGIN IMMEDIATE");
+    maybeResetPeriod(db, cap.scope, cap.period_days);
+    const usage = db.prepare("SELECT * FROM budget_usage WHERE scope = ?").get(cap.scope) as any;
+    db.exec("COMMIT");
+    
     return {
       scope: cap.scope,
       spent: usage?.spent ?? 0,
-      cap: cap.capTokens,
-      periodStart: usage?.periodStart ?? new Date().toISOString(),
-      exceeded: (usage?.spent ?? 0) > cap.capTokens,
+      cap: cap.cap_tokens,
+      periodStart: usage?.period_start ?? new Date().toISOString(),
+      exceeded: (usage?.spent ?? 0) > cap.cap_tokens,
     };
   });
 }

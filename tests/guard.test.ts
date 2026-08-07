@@ -73,10 +73,10 @@ describe("verifyInclusion", () => {
     expect(verifyInclusion(raw, pruned)).toBe(true);
   });
 
-  it("detects reordering as valid (order doesn't matter for inclusion)", () => {
+  it("rejects reordering as invalid (order matters for subsequence)", () => {
     const raw = "line1\nline2\nline3";
     const pruned = "line3\nline1"; // reordered subset
-    expect(verifyInclusion(raw, pruned)).toBe(true);
+    expect(verifyInclusion(raw, pruned)).toBe(false);
   });
 
   it("handles duplicate lines correctly", () => {
