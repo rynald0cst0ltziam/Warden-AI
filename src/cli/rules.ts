@@ -40,20 +40,39 @@ It proves every optimization is safe via a shadow-mode eval gate.
 
 At the start of every session in this project, do THREE things in order:
 
-1. Call \`warden_handoff\` with \`{ read: true }\` to read the previous session's
+1. Call \`warden_handoff\` with \`{ read: true, repoRoot: "<project-root>" }\` to read the previous session's
    handoff document. This gives you the essential state from the last session —
    decisions made, tasks completed, files touched — so you pick up where the
    previous session left off instead of starting from scratch. Print a one-line
    summary to the user: "Previous session: X decisions, Y tasks, Z files touched."
 
-2. Call \`warden_status\` and print a one-line summary:
+2. Call \`warden_status\` with \`{ repoRoot: "<project-root>" }\` and print a one-line summary:
    "Warden active — X tokens saved so far, Y rules live."
 
-3. Call \`warden_memory_recall\` with a query matching the user's task to find
+3. Call \`warden_memory_recall\` with \`{ query: "<task-relevant-query>", repoRoot: "<project-root>" }\` to find
    relevant past decisions. Print any results that are relevant.
 
 This gives the user visible proof that Warden is working and surfaces project
 context from previous sessions.
+
+### CRITICAL: Always pass repoRoot on memory/status/handoff calls
+
+The MCP server is a long-running process whose working directory is fixed at
+startup. If you switch projects, the server may still be using a different
+project's database. To ensure memories, status, and handoffs are scoped to the
+correct project, ALWAYS pass \`repoRoot\` (your current project root directory)
+on these calls:
+- \`warden_status({ repoRoot: "..." })\`
+- \`warden_memory_save({ ..., repoRoot: "..." })\`
+- \`warden_memory_recall({ ..., repoRoot: "..." })\`
+- \`warden_memory_list({ ..., repoRoot: "..." })\`
+- \`warden_memory_forget({ ..., repoRoot: "..." })\`
+- \`warden_record_outcome({ ..., repoRoot: "..." })\`
+- \`warden_handoff({ ..., repoRoot: "..." })\`
+- \`warden_outcome_stats({ repoRoot: "..." })\`
+
+Use the absolute path to your project root (the directory containing .git or
+package.json). This ensures each project's memories stay isolated.
 
 ### If warden_status fails (transport error, tool not found, etc.)
 
@@ -102,9 +121,10 @@ output should go through Warden.
 When you make a durable project decision (architecture choice, library selection,
 convention, constraint), call \`warden_memory_save\` to persist it:
 
-- Parameters: category, title, body, tags, source
+- Parameters: category, title, body, tags, source, repoRoot
 - Categories: "decision" | "finding" | "pattern" | "constraint" | "preference"
-- Typical: warden_memory_save({ category: "decision", title: "Use Stripe for payments", body: "...", tags: ["payments","billing"] })
+- repoRoot: pass your current project root directory to scope memories to this project
+- Typical: warden_memory_save({ category: "decision", title: "Use Stripe for payments", body: "...", tags: ["payments","billing"], repoRoot: "/path/to/project" })
 
 Only save things that should persist across sessions — not transient task notes.
 Use \`warden_memory_recall\` at the start of future tasks to find relevant decisions.
@@ -114,8 +134,8 @@ Use \`warden_memory_recall\` at the start of future tasks to find relevant decis
 After finishing a task, do TWO things:
 
 1. Call \`warden_record_outcome\` to report whether it succeeded:
-   - Parameters: task, success, pruned, tokensSaved
-   - Typical: warden_record_outcome({ task: "fix null pointer", success: true, pruned: true, tokensSaved: 500 })
+   - Parameters: task, success, pruned, tokensSaved, repoRoot
+   - Typical: warden_record_outcome({ task: "fix null pointer", success: true, pruned: true, tokensSaved: 500, repoRoot: "/path/to/project" })
 
 2. Call \`warden_status\` and print a one-line summary to the user:
    "Warden — X tokens saved this session (Y% reduction)."
@@ -130,9 +150,9 @@ When the session is ending, or when the context window is getting full and may
 be compacted, call \`warden_handoff\` (without \`read\`) to GENERATE a handoff
 document for the next session:
 
-- Typical: warden_handoff({}) — generates a compact summary of this session
+- Typical: warden_handoff({ repoRoot: "/path/to/project" }) — generates a compact summary of this session
 - The document covers: decisions made, tasks completed, files touched, tokens saved
-- It is stored locally and read by the next session via \`warden_handoff({ read: true })\`
+- It is stored locally and read by the next session via \`warden_handoff({ read: true, repoRoot: "/path/to/project" })\`
 - Incremental: each handoff covers only the window since the previous one
 
 When to generate a handoff:

@@ -51,10 +51,11 @@ import {
   formatWardenMetaJson,
 } from "../pruner/types.js";
 import { compressDescription } from "../output/compress-descriptions.js";
-import { findRepoRoot, ensureWardenDir } from "../config/index.js";
+import { findRepoRoot, ensureWardenDir, dbPath } from "../config/index.js";
 import { writeRules } from "../cli/rules.js";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import type { SqliteStore } from "../store/sqlite.js";
 
 const TOOL_TYPES: ToolType[] = [
   "grep",
@@ -85,6 +86,41 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
   // explicit memory/outcome tools.
   const memory = new AgentMemory(warden.store);
   const tracker = new TaskTracker(warden.store);
+
+  // ---- Per-project store cache ----
+  // The MCP server is a single long-running process whose cwd is fixed at
+  // startup. When the agent switches projects, the server would still use the
+  // original project's DB. To fix this, memory/handoff/outcome tools accept a
+  // `repoRoot` parameter. When provided, we open (or reuse) a separate
+  // SqliteStore for that project, ensuring memories are isolated per project.
+  interface ProjectStore {
+    store: typeof warden.store;
+    memory: AgentMemory;
+    tracker: TaskTracker;
+  }
+  const projectStores = new Map<string, ProjectStore>();
+  const defaultRepoRoot = warden.repoRoot ?? process.cwd();
+
+  async function getProjectStore(repoRoot?: string): Promise<ProjectStore> {
+    const resolved = resolve(repoRoot ?? defaultRepoRoot);
+    if (resolved === resolve(defaultRepoRoot)) {
+      return { store: warden.store, memory, tracker };
+    }
+    let cached = projectStores.get(resolved);
+    if (!cached) {
+      const path = dbPath(resolved);
+      ensureWardenDir(resolved);
+      const { SqliteStore } = await import("../store/sqlite.js");
+      const store = await SqliteStore.open(path);
+      cached = {
+        store,
+        memory: new AgentMemory(store),
+        tracker: new TaskTracker(store),
+      };
+      projectStores.set(resolved, cached);
+    }
+    return cached;
+  }
 
   // Code index adapter for 2-hop symbol expansion in context selection.
   // Wraps the raw SQLite store to satisfy the CodeIndexStore interface.
@@ -402,8 +438,13 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
   server.tool(
     "warden_status",
     cd("Show Warden state: rules, stages, confidence, tokens saved, AND recent project memories. Call at session start to see savings + surface past decisions automatically."),
-    {},
-    async () => {
+    {
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd). Pass your project's root dir to ensure memories are scoped to the correct project."),
+    },
+    async (args) => {
       const status = warden.status();
       const totalSaved = warden.totalTokensSaved();
       const totalProcessed = warden.totalTokensProcessed();
@@ -427,7 +468,11 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
 
       // Auto-inject recent memories so the agent sees them at session start
       // without needing a separate warden_memory_recall call.
-      const recentMemories = memory.list(5);
+      // Use project-scoped memory if repoRoot is provided.
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const recentMemories = projectMemory.list(5);
       if (recentMemories.length > 0) {
         lines.push("", "Recent project memories (auto-surfaced):");
         for (const m of recentMemories) {
@@ -572,11 +617,18 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .string()
         .optional()
         .describe("What triggered this (e.g., 'user request')"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd). Pass your project's root dir to ensure memories are scoped to the correct project."),
     },
     async (args) => {
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
       // Check for conflicts BEFORE saving (so we can report them)
-      const conflicts = memory.findConflicts(args.title, args.category);
-      const id = memory.save({
+      const conflicts = projectMemory.findConflicts(args.title, args.category);
+      const id = projectMemory.save({
         category: args.category,
         title: args.title,
         body: args.body,
@@ -584,7 +636,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         source: args.source,
       });
       // Check if this was a dedup (existing id returned)
-      const all = memory.list(1000);
+      const all = projectMemory.list(1000);
       const isDedup = all.some((m) => m.id === id && m.title !== args.title);
 
       const lines = [`Memory saved (id=${id}): [${args.category}] ${args.title}`];
@@ -633,9 +685,16 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .number()
         .optional()
         .describe("Max memories to return (default 10)"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd). Pass your project's root dir to ensure memories are scoped to the correct project."),
     },
     async (args) => {
-      const results = memory.recall(args.query, args.limit ?? 10);
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const results = projectMemory.recall(args.query, args.limit ?? 10);
       if (results.length === 0) {
         return {
           content: [
@@ -663,9 +722,16 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .number()
         .optional()
         .describe("Max memories to return (default 50)"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd). Pass your project's root dir to ensure memories are scoped to the correct project."),
     },
     async (args) => {
-      const results = memory.list(args.limit ?? 50);
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const results = projectMemory.list(args.limit ?? 50);
       if (results.length === 0) {
         return { content: [{ type: "text", text: "No memories stored yet." }] };
       }
@@ -686,9 +752,16 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
     cd("Delete stored memory. Use when decision is outdated or wrong."),
     {
       id: z.number().describe("Memory ID to delete"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd). Pass your project's root dir to ensure memories are scoped to the correct project."),
     },
     async (args) => {
-      const deleted = memory.forget(args.id);
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const deleted = projectMemory.forget(args.id);
       return {
         content: [
           {
@@ -719,9 +792,19 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .number()
         .optional()
         .describe("Tokens saved by pruning during this task"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd). Pass your project's root dir to ensure memories are scoped to the correct project."),
     },
     async (args) => {
-      tracker.record({
+      const projectTracker = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).tracker
+        : tracker;
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      projectTracker.record({
         task: args.task,
         success: args.success,
         pruned: args.pruned,
@@ -734,7 +817,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
       let autoSaved = "";
       if (!args.success) {
         try {
-          const id = memory.save({
+          const id = projectMemory.save({
             category: "finding",
             title: `Failed: ${args.task}`,
             body: `Task "${args.task}" failed. Pruning was ${args.pruned ? "active" : "inactive"}. Review the approach before retrying.`,
@@ -751,7 +834,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         content: [
           {
             type: "text",
-            text: `Outcome recorded. ${tracker.summary()}${autoSaved}`,
+            text: `Outcome recorded. ${projectTracker.summary()}${autoSaved}`,
           },
         ],
       };
@@ -761,10 +844,18 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
   server.tool(
     "warden_outcome_stats",
     cd("Task outcome stats: success rates with/without pruning, regression detection."),
-    {},
-    async () => {
+    {
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for scoping (defaults to server cwd). Pass your project's root dir to ensure stats are scoped to the correct project."),
+    },
+    async (args) => {
+      const projectTracker = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).tracker
+        : tracker;
       return {
-        content: [{ type: "text", text: tracker.summary() }],
+        content: [{ type: "text", text: projectTracker.summary() }],
       };
     },
   );
@@ -1134,10 +1225,17 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .number()
         .optional()
         .describe("Lookback window in hours for generate mode (default: 8, or since last handoff). Ignored in read mode."),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for scoping (defaults to server cwd). Pass your project's root dir to ensure handoff is scoped to the correct project."),
     },
     async (args) => {
       const { HandoffGenerator } = await import("../handoff/index.js");
-      const gen = new HandoffGenerator(warden.store);
+      const projectStore = args.repoRoot
+        ? await getProjectStore(args.repoRoot)
+        : { store: warden.store };
+      const gen = new HandoffGenerator(projectStore.store);
 
       // Read mode: return the last handoff without generating a new one
       if (args.read === true) {

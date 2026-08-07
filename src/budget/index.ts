@@ -8,8 +8,17 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { DatabaseSync } from "node:sqlite";
+import { createRequire } from "node:module";
+import type { DatabaseSync } from "../store/sqlite-loader.js";
 import { logger } from "../logging/index.js";
+
+// Load node:sqlite synchronously via createRequire with a runtime-built
+// specifier. This prevents esbuild from stripping the `node:` prefix to a
+// bare `sqlite` specifier (which Node can't resolve).
+const _require = createRequire(import.meta.url);
+const _sqliteSpec = "node" + ":sqlite";
+const _sqlite = _require(_sqliteSpec) as typeof import("node:sqlite");
+const DatabaseSyncCtor = _sqlite.DatabaseSync;
 
 export interface BudgetCap {
   scope: string;
@@ -32,7 +41,7 @@ function getDb(): DatabaseSync {
   const dir = join(homedir(), ".warden");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   
-  _db = new DatabaseSync(join(dir, "budgets.db"));
+  _db = new DatabaseSyncCtor(join(dir, "budgets.db"));
   _db.exec(`
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS budget_caps (
