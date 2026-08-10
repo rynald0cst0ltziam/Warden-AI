@@ -34,6 +34,7 @@ import {
 import { exportAuditTrail, type ExportFormat } from "../audit/export.js";
 import { runWatchdogTiered, watchdogMode } from "../watchdog/index.js";
 import { writeRules, writeGlobalRules, detectAgentConfigs } from "./rules.js";
+import { installHooks } from "./hooks.js";
 import { DEFAULT_OUTPUT_LEVEL, type OutputLevel } from "../output/index.js";
 import { runDoctor } from "./doctor.js";
 import { ccrSummary, ccrCleanup } from "../ccr/index.js";
@@ -100,6 +101,16 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       for (const t of globalTargets) {
         const mark = t.written ? chalk.green("✓") : chalk.red("✗");
         lines.push(`  ${mark} ${t.agent.padEnd(22)} ${t.path}`);
+      }
+
+      // Step 2c: Install PreToolUse hooks (enforce Warden wrapper usage)
+      lines.push("", chalk.bold("Step 2c: Install enforcement hooks\n"));
+      lines.push(chalk.gray("  PreToolUse hooks block built-in Read/Grep calls and redirect to Warden wrappers.\n"));
+      const hookTargets = installHooks(process.cwd(), opts.command);
+      for (const t of hookTargets) {
+        const mark = t.written ? chalk.green("✓") : chalk.red("✗");
+        const note = t.note ? chalk.gray(` (${t.note})`) : "";
+        lines.push(`  ${mark} ${t.agent.padEnd(16)} ${t.path}${note}`);
       }
 
       // Step 3: Build code index (enables call graph, impact analysis, architecture overview)
@@ -250,6 +261,71 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     )
     .action(async () => {
       await runMcpServer();
+    });
+
+  program
+    .command("hook")
+    .description(
+      "Hook handler for agent PreToolUse interception. Reads JSON from stdin, blocks built-in Read/Grep calls and redirects to Warden wrappers. Used by hook configs installed by `warden init`.",
+    )
+    .argument("<action>", "Hook action: 'redirect' to intercept built-in tools")
+    .action(async (action: string) => {
+      if (action !== "redirect") {
+        process.stderr.write(`Unknown hook action: ${action}\n`);
+        process.exit(1);
+      }
+
+      // Read JSON from stdin (tool_name + tool_input from the agent)
+      let input = "";
+      for await (const chunk of process.stdin) {
+        input += chunk;
+      }
+
+      let toolName = "";
+      try {
+        const data = JSON.parse(input);
+        toolName = data.tool_name ?? data.toolName ?? "";
+      } catch {
+        // Can't parse — allow the call (fail open)
+        process.exit(0);
+      }
+
+      // Normalize tool name for matching (case-insensitive)
+      const normalized = toolName.toLowerCase();
+
+      // Don't intercept Warden's own MCP tools
+      if (normalized.includes("warden") || normalized.includes("mcp__")) {
+        process.exit(0);
+      }
+
+      // Don't intercept write/edit operations (Warden has no wrappers for these)
+      const writeTools = ["write", "edit", "notebook_edit", "create_file", "multi_edit"];
+      if (writeTools.some((t) => normalized.includes(t))) {
+        process.exit(0);
+      }
+
+      // Intercept Read → redirect to warden_file_read
+      if (normalized === "read" || normalized === "read_file" || normalized === "fileread") {
+        process.stderr.write(
+          "BLOCKED: Use warden_file_read instead of the built-in Read tool. " +
+          "warden_file_read does the same thing AND prunes the output (50-90% token reduction). " +
+          "Call: warden_file_read({ filePath: \"<path>\" })\n",
+        );
+        process.exit(2);
+      }
+
+      // Intercept Grep/Search → redirect to warden_grep
+      if (normalized === "grep" || normalized === "search" || normalized === "code_search") {
+        process.stderr.write(
+          "BLOCKED: Use warden_grep instead of the built-in Grep/Search tool. " +
+          "warden_grep does the same thing AND prunes the output (50-90% token reduction). " +
+          "Call: warden_grep({ pattern: \"<pattern>\" })\n",
+        );
+        process.exit(2);
+      }
+
+      // Allow everything else (Bash, exec, etc. — too many edge cases to block)
+      process.exit(0);
     });
 
   program

@@ -98,6 +98,14 @@ Warden tools do the same work AND prune the output automatically — no extra
 step needed. This is not optional. Every tool call that could produce large
 output should go through Warden.
 
+### Enforcement hooks (automatic)
+
+If \`warden init\` installed hooks (Step 2c), built-in Read/Grep calls are
+automatically blocked and redirected to Warden wrappers. You don't need to
+remember — the hook intercepts the call and tells you to use the Warden
+wrapper instead. If you see a "BLOCKED: Use warden_file_read instead" message,
+that's the hook working as intended. Just call the Warden wrapper tool.
+
 1. **Searching code**: Use \`warden_grep\` INSTEAD OF your built-in grep/search.
    - It searches files and returns only the matches relevant to the current task.
    - Parameters: pattern (required), path, glob, ignoreCase, maxResults

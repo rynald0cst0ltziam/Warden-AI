@@ -453,6 +453,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
           ? Math.round((totalSaved / totalProcessed) * 100)
           : 0;
       const activeRules = status.filter((s) => s.stage === "active").length;
+      const totalCalls = status.reduce((sum, s) => sum + s.calls, 0);
 
       const lines = [
         `Warden — ${activeRules}/${status.length} rules active | ${totalSaved} tokens saved (${reductionPct}% reduction) | ${totalProcessed} processed`,
@@ -465,6 +466,18 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
           return `  ${s.ruleId.padEnd(36)} ${s.stage.padEnd(8)} conf=${s.confidence.toFixed(2)} saved=${s.tokensSaved} (${pct}%) calls=${s.calls}${s.decaying ? " ⚠decaying" : ""}`;
         }),
       ];
+
+      // Compliance warning: if no pruning calls have been made, the agent
+      // is likely using built-in tools instead of Warden wrappers.
+      if (totalCalls === 0) {
+        lines.push(
+          "",
+          "⚠ COMPLIANCE WARNING: 0 pruning calls recorded. You appear to be using built-in",
+          "  read/grep tools instead of Warden wrappers. Use warden_file_read and warden_grep",
+          "  to get automatic 50-90% token reduction on every tool call. If hooks are",
+          "  installed (warden init), Read/Grep calls should be auto-redirected.",
+        );
+      }
 
       // Auto-inject recent memories so the agent sees them at session start
       // without needing a separate warden_memory_recall call.
