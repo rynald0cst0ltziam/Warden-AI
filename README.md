@@ -125,11 +125,14 @@ Every line in the pruned output exists verbatim in the raw — verified by the t
 | **Code intelligence** | Index functions, imports, call sites. Query call graph, impact, dead code | 100x fewer round trips |
 | **Context selection** | Recommends files for the task with 2-hop symbol expansion | 80%+ smaller context |
 | **Tool output pruning** | `warden_grep`, `warden_file_read`, `warden_run_tests`, `warden_run_command` | 50-91% per call |
-| **Agent memory** | Decisions persist across sessions, auto-surface at start | 0 repeated context |
+| **Agent memory** | Decisions persist across sessions with lifecycle (reaffirm, supersede, archive). Failed approaches surface as warnings | 0 repeated mistakes |
 | **Response compression** | Rules drop filler, preamble, narration. Code stays verbatim | 45-65% per reply |
 | **File compression** | `warden compress` strips filler from memory files, no LLM call | up to 32% per file |
 | **Description compression** | 24 tool descriptions compressed before sending | ~41% per turn |
 | **Session continuity** | `warden_handoff` reads previous session at start, writes at end | 0 cold starts |
+| **Git context** | File history, blame, churn metrics — know if code is stable or volatile | fewer surprises |
+| **Sufficient context** | Unified context: files + past decisions + failed approaches + git volatility + token budget | 90%+ smaller context |
+| **Task reports** | Per-task and project-wide reports with overhead timing | measure what matters |
 
 ### Safety net — always on
 
@@ -188,6 +191,64 @@ Code, shell commands, and error text are **included-or-excluded wholesale** — 
 
 <br>
 
+## Evolution & measurement
+
+Warden doesn't just prune — it measures itself and evolves its memory.
+
+### Task reports
+
+```bash
+warden task-report --all
+# WARDEN PROJECT REPORT — ALL TIME
+# Total prune calls:     143
+# Tokens saved (gross):  186,038
+# Reduction:             77.9%
+# WARDEN OVERHEAD
+#   Processing time:      34ms
+#   Overhead tokens:      34 (est.)
+#   Net tokens saved:     186,004
+```
+
+Per-task or project-wide. Includes overhead timing — Warden measures its own cost and subtracts it from gross savings to report **net tokens saved**.
+
+### Memory lifecycle
+
+Decisions aren't static. They evolve:
+
+```js
+warden_memory_save({ category: "decision", title: "Use PostgreSQL", body: "...", sourceType: "documentation", evidence: ["docs/arch.md"] })
+warden_memory_reaffirm({ id: 42 })     // decision confirmed again — boosts confidence
+warden_memory_supersede({ oldId: 42, newId: 55 })  // old decision replaced
+warden_memory_archive({ id: 42 })      // no longer relevant
+warden_memory_mark_contested({ id: 42 }) // someone disagrees
+```
+
+### Failed approach tracking
+
+When something doesn't work, Warden remembers:
+
+```js
+warden_memory_save({ category: "failed_approach", title: "Redis for sessions", body: "Lost persistence in deploy. Do not retry.", outcome: "failure" })
+// Later, when starting a similar task:
+warden_memory_failed_approaches({ query: "session storage" })
+// → WARNING: Redis for sessions — failure. Do not retry.
+```
+
+### Sufficient context — one call, everything you need
+
+```js
+warden_sufficient_context({ task: "fix auth token expiry", tokenBudget: 2000 })
+// → FILES (3 files, categorized, with git churn)
+// → PAST DECISIONS (2 recalled decisions)
+// → FAILED APPROACHES (1 warning — don't use Redis for this)
+// → VOLATILITY NOTES (auth.ts: 8 commits — volatile, expect recent changes)
+// → TOKEN ACCOUNTING (budget=2000, used=1847, trimmed=yes)
+```
+
+Combines file recommendations, past decisions, failed approach warnings, git volatility, and token budget trimming into a single response. Replaces `warden_context_select` when you want the full picture.
+
+<br>
+
 ## Works with 30+ agents
 
 | | | | | |
@@ -224,20 +285,24 @@ Code, shell commands, and error text are **included-or-excluded wholesale** — 
 | `warden ccr retrieve <hash>` | Retrieve original output (`--around`, `--lines`) |
 | `warden memory list` | List all stored memories |
 | `warden memory recall <query>` | Search memories |
+| `warden task-report` | Per-task report: tokens saved, overhead, outcomes (`--all`, `--since`, `--until`, `--task`) |
+| `warden git-context <file>` | Git history, blame, churn metrics for a file (`--start`, `--end`, `--blame`) |
+| `warden sufficient-context <task>` | Unified context: files + memories + failed approaches + git volatility (`-b` budget) |
 | `warden rules` | Write agent rules files |
 
 <br>
 
 ## MCP tools
 
-**24 tools. All called automatically by your agent via the rules file.**
+**30+ tools. All called automatically by your agent via the rules file.**
 
 | Category | Tools |
 |:---------|:------|
 | **Tool wrappers** | `warden_grep` · `warden_file_read` · `warden_run_tests` · `warden_run_command` |
-| **Context & intelligence** | `warden_context_select` · `warden_index` · `warden_call_graph` · `warden_impact` · `warden_architecture` · `warden_search_symbols` · `warden_dead_code` |
-| **Memory** | `warden_memory_save` · `warden_memory_recall` · `warden_memory_list` · `warden_memory_forget` |
-| **Eval & outcomes** | `warden_record_outcome` · `warden_outcome_stats` |
+| **Context & intelligence** | `warden_context_select` · `warden_sufficient_context` · `warden_index` · `warden_call_graph` · `warden_impact` · `warden_architecture` · `warden_search_symbols` · `warden_dead_code` |
+| **Memory** | `warden_memory_save` · `warden_memory_recall` · `warden_memory_list` · `warden_memory_forget` · `warden_memory_failed_approaches` · `warden_memory_reaffirm` · `warden_memory_archive` · `warden_memory_mark_contested` · `warden_memory_reject` |
+| **Git context** | `warden_git_context` — history, blame, churn metrics |
+| **Eval & outcomes** | `warden_record_outcome` · `warden_outcome_stats` · `warden_task_report` |
 | **Status & audit** | `warden_status` · `warden_report` · `warden_prune` · `warden_compress` |
 | **CCR (reversibility)** | `warden_retrieve` · `warden_ccr_status` |
 | **Session continuity** | `warden_handoff` — `read: true` at start, generate at end |
@@ -273,7 +338,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (244 tests, 20 files) |
+| Tests | Vitest (308 tests, 28 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |

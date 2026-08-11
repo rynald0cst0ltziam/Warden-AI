@@ -53,6 +53,9 @@ import {
 import { compressDescription } from "../output/compress-descriptions.js";
 import { findRepoRoot, ensureWardenDir, dbPath } from "../config/index.js";
 import { writeRules } from "../cli/rules.js";
+import { buildTaskReport, formatTaskReport } from "../measurement/report.js";
+import { gitContext, formatGitContext, gitChangeFrequency } from "../git/context.js";
+import { sufficientContext, formatSufficientContext } from "../context/sufficient.js";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { SqliteStore } from "../store/sqlite.js";
@@ -533,6 +536,95 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
     },
   );
 
+  // ---- P0a: Task performance report ----
+  server.tool(
+    "warden_task_report",
+    cd("Show a task performance report: tokens saved, reduction %, guard results, task outcomes. Pass --all for project-wide historical report, or time range with since/until. Call after completing tasks to see Warden's measured impact."),
+    {
+      since: z
+        .string()
+        .optional()
+        .describe("Start time (ISO 8601). Defaults to 24h ago."),
+      until: z
+        .string()
+        .optional()
+        .describe("End time (ISO 8601). Defaults to now."),
+      task: z
+        .string()
+        .optional()
+        .describe("Filter outcomes by task description (substring match)."),
+      all: z
+        .boolean()
+        .optional()
+        .describe("Show project-wide historical report instead of time range."),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for scoping (defaults to server cwd)."),
+    },
+    async (args) => {
+      const projectStore = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).store
+        : warden.store;
+
+      if (args.all) {
+        // Project-wide historical report
+        const totalSaved = projectStore.totalTokensSaved();
+        const totalProcessed = projectStore.totalTokensProcessed();
+        const reductionPct =
+          totalProcessed > 0
+            ? Math.round((totalSaved / totalProcessed) * 1000) / 10
+            : 0;
+        const outcomes = projectStore.recentTaskOutcomes(20);
+        const totalTasks = outcomes.length;
+        const successful = outcomes.filter((o) => o.success === 1).length;
+        const ccrCount = projectStore.ccrCount();
+        const ccrTokens = projectStore.ccrTokensSaved();
+
+        const lines = [
+          "WARDEN PROJECT REPORT — ALL TIME",
+          "────────────────────────────────────────",
+          "",
+          `Tokens saved (gross):  ${totalSaved.toLocaleString()}`,
+          `Tokens processed:      ${totalProcessed.toLocaleString()}`,
+          `Reduction:             ${reductionPct}%`,
+          "",
+          `Tasks tracked:         ${totalTasks}`,
+          `Successful:            ${successful}`,
+          `Success rate:          ${totalTasks > 0 ? ((successful / totalTasks) * 100).toFixed(1) : "0"}%`,
+          "",
+          `CCR cached originals:  ${ccrCount}`,
+          `CCR tokens retrievable: ${ccrTokens.toLocaleString()}`,
+        ];
+        if (outcomes.length > 0) {
+          lines.push("", "RECENT TASK OUTCOMES");
+          for (const o of outcomes) {
+            const status = o.success === 1 ? "SUCCESS" : "FAILURE";
+            const pruned = o.pruned === 1 ? "pruned" : "raw";
+            lines.push(
+              `  [${status}] ${o.task} (${pruned}, saved=${o.tokens_saved})`,
+            );
+          }
+        }
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      }
+
+      const end = args.until ?? new Date().toISOString();
+      const start =
+        args.since ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const report = buildTaskReport(projectStore, {
+        start,
+        end,
+        taskFilter: args.task,
+      });
+
+      return {
+        content: [{ type: "text", text: formatTaskReport(report) }],
+      };
+    },
+  );
+
   // ---- Layer 1: Input context selection ----
   server.tool(
     "warden_context_select",
@@ -609,15 +701,109 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
     },
   );
 
+  // ---- P4: Unified sufficient context ----
+  server.tool(
+    "warden_sufficient_context",
+    cd("Get unified minimal sufficient context for a task — file recommendations + past decisions + failed approach warnings + git volatility. Use INSTEAD OF warden_context_select when you want the full picture. Combines all Warden layers into one response."),
+    {
+      task: z
+        .string()
+        .describe("The task you're about to work on"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory (defaults to cwd)"),
+      maxFiles: z
+        .number()
+        .optional()
+        .describe("Maximum files to recommend (default 15)"),
+      tokenBudget: z
+        .number()
+        .optional()
+        .describe("Optional token budget — trims package to fit"),
+      memoryLimit: z
+        .number()
+        .optional()
+        .describe("Max past decisions to recall (default 5)"),
+      failedApproachLimit: z
+        .number()
+        .optional()
+        .describe("Max failed approaches to surface (default 3)"),
+    },
+    async (args) => {
+      const memory = warden.memory;
+      const result = await sufficientContext({
+        task: args.task,
+        repoRoot: args.repoRoot ?? process.cwd(),
+        maxFiles: args.maxFiles,
+        tokenBudget: args.tokenBudget,
+        store: warden.store,
+        codeIndex: codeIndexAdapter,
+        memory: memory
+          ? {
+              recall: (q, n) => memory.recall(q, n),
+              findFailedApproaches: (q, n) => memory.findFailedApproaches(q, n),
+            }
+          : undefined,
+        git: {
+          gitChangeFrequency: (root, path) => gitChangeFrequency(root, path),
+        },
+        memoryLimit: args.memoryLimit,
+        failedApproachLimit: args.failedApproachLimit,
+      });
+      return {
+        content: [{ type: "text", text: formatSufficientContext(result) }],
+      };
+    },
+  );
+
+  // ---- P3: Git context ----
+  server.tool(
+    "warden_git_context",
+    cd("Get git history, blame, and change frequency for a file. Use to understand why code looks the way it does — recent commits, churn metrics, line-level blame. Helps decide if code is stable or volatile."),
+    {
+      filePath: z
+        .string()
+        .describe("Path to the file (relative to repoRoot or absolute)."),
+      startLine: z
+        .number()
+        .optional()
+        .describe("Start line for blame (1-based, inclusive)."),
+      endLine: z
+        .number()
+        .optional()
+        .describe("End line for blame (1-based, inclusive)."),
+      includeBlame: z
+        .boolean()
+        .optional()
+        .describe("Include line-level blame (slower — default false)."),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory (defaults to server cwd)."),
+    },
+    async (args) => {
+      const root = args.repoRoot ?? process.cwd();
+      const ctx = gitContext(root, args.filePath, {
+        startLine: args.startLine,
+        endLine: args.endLine,
+        includeBlame: args.includeBlame,
+      });
+      return {
+        content: [{ type: "text", text: formatGitContext(ctx) }],
+      };
+    },
+  );
+
   // ---- Layer 3: Agent memory ----
 
   server.tool(
     "warden_memory_save",
-    cd("Save durable project decision/finding/pattern. Use AFTER important decisions. Only things that persist across sessions."),
+    cd("Save durable project decision/finding/pattern. Use AFTER important decisions. Only things that persist across sessions. Supports structured provenance (sourceType, evidence), scope, outcome for failed approaches, and supersedesId for decision lifecycle."),
     {
       category: z
-        .enum(["decision", "finding", "pattern", "constraint", "preference"])
-        .describe("Type of memory"),
+        .enum(["decision", "finding", "pattern", "constraint", "preference", "failed_approach"])
+        .describe("Type of memory. Use 'failed_approach' for approaches that didn't work."),
       title: z
         .string()
         .describe("Short summary (e.g., 'Use Stripe for payments')"),
@@ -630,6 +816,26 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .string()
         .optional()
         .describe("What triggered this (e.g., 'user request')"),
+      sourceType: z
+        .string()
+        .optional()
+        .describe("Type of source: 'human' | 'agent' | 'documentation' | 'commit' | 'configuration' | 'code' | 'test' | 'explicit_user_instruction'"),
+      evidence: z
+        .array(z.string())
+        .optional()
+        .describe("Evidence references (file paths, commit SHAs, URLs) supporting this decision"),
+      scope: z
+        .string()
+        .optional()
+        .describe("Scope of the decision (file path, module, or omit for global)"),
+      outcome: z
+        .string()
+        .optional()
+        .describe("Outcome: 'success' or 'failure'. Use 'failure' with category 'failed_approach' to record approaches that didn't work."),
+      supersedesId: z
+        .number()
+        .optional()
+        .describe("ID of the decision this one supersedes. The old decision will be marked as superseded."),
       repoRoot: z
         .string()
         .optional()
@@ -647,6 +853,11 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         body: args.body,
         tags: args.tags ?? [],
         source: args.source,
+        sourceType: args.sourceType,
+        evidence: args.evidence,
+        scope: args.scope,
+        outcome: args.outcome,
+        supersedesId: args.supersedesId,
       });
       // Check if this was a dedup (existing id returned)
       const all = projectMemory.list(1000);
@@ -660,6 +871,10 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         );
       }
 
+      if (args.supersedesId) {
+        lines.push(`Superseded decision id=${args.supersedesId} (marked as superseded).`);
+      }
+
       // Report conflicts (excluding the one we just saved)
       const realConflicts = conflicts.filter((c) => c.id !== id);
       if (realConflicts.length > 0) {
@@ -670,7 +885,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
           lines.push(`  - [${c.category}] ${c.title} (id=${c.id})`);
         }
         lines.push(
-          "If the new memory supersedes an old one, call warden_memory_forget with the old id.",
+          "If the new memory supersedes an old one, pass supersedesId to mark it.",
         );
       }
 
@@ -722,6 +937,55 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
           (m) =>
             `  [${m.category}] ${m.title}\n    ${m.body}\n    tags: ${m.tags.join(", ") || "none"} | accessed: ${m.accessCount}x | ${m.timestamp.slice(0, 10)}`,
         ),
+      ];
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    },
+  );
+
+  // ---- P1: Failed approach recall ----
+  server.tool(
+    "warden_memory_failed_approaches",
+    cd("Find past failed approaches relevant to a task. Use BEFORE attempting an approach to check if it was tried before and failed. Prevents repeating known-bad solutions."),
+    {
+      query: z
+        .string()
+        .describe("What you're about to try (e.g., 'Redis sessions', 'regex parsing')"),
+      limit: z
+        .number()
+        .optional()
+        .describe("Max failures to return (default 5)"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd)."),
+    },
+    async (args) => {
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const failures = projectMemory.findFailedApproaches(
+        args.query,
+        args.limit ?? 5,
+      );
+      if (failures.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No failed approaches found for "${args.query}". Safe to try.`,
+            },
+          ],
+        };
+      }
+      const lines = [
+        `WARNING: ${failures.length} failed approach(es) found for "${args.query}":`,
+        "",
+        ...failures.map(
+          (f) =>
+            `  [${f.category}] ${f.title}\n    ${f.body}\n    evidence: ${f.evidence.join(", ") || "none"} | ${f.timestamp.slice(0, 10)}`,
+        ),
+        "",
+        "Consider a different approach, or call warden_memory_save with supersedesId if you've found a working solution.",
       ];
       return { content: [{ type: "text", text: lines.join("\n") }] };
     },
@@ -782,6 +1046,63 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
             text: deleted
               ? `Memory #${args.id} deleted.`
               : `Memory #${args.id} not found.`,
+          },
+        ],
+      };
+    },
+  );
+
+  // ---- P1: Decision lifecycle tools ----
+  server.tool(
+    "warden_memory_reaffirm",
+    cd("Reaffirm a decision — signals this decision was referenced and found still valid. Increments reaffirm count. Call when a past decision is confirmed during a task."),
+    {
+      id: z.number().describe("Memory ID to reaffirm"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd)."),
+    },
+    async (args) => {
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const ok = projectMemory.reaffirm(args.id);
+      return {
+        content: [
+          {
+            type: "text",
+            text: ok
+              ? `Memory #${args.id} reaffirmed.`
+              : `Memory #${args.id} not found or not active.`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "warden_memory_archive",
+    cd("Archive a decision — mark as expired (no longer relevant). Use instead of forget when the decision should be preserved for history but not surfaced."),
+    {
+      id: z.number().describe("Memory ID to archive"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd)."),
+    },
+    async (args) => {
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const ok = projectMemory.archive(args.id);
+      return {
+        content: [
+          {
+            type: "text",
+            text: ok
+              ? `Memory #${args.id} archived (status=expired).`
+              : `Memory #${args.id} not found or not active.`,
           },
         ],
       };

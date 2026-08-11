@@ -64,6 +64,15 @@ export type {
   ContextSelectionResult,
   ContextStore,
 } from "./context/index.js";
+export { sufficientContext, formatSufficientContext } from "./context/sufficient.js";
+export type {
+  SufficientContextResult,
+  SufficientContextFile,
+  RelevantMemory,
+  ContextCategory,
+  MemoryProvider,
+  GitProvider,
+} from "./context/sufficient.js";
 export { AgentMemory } from "./memory/index.js";
 export type { MemoryInput, MemoryResult, MemoryStore } from "./memory/index.js";
 export { TaskTracker } from "./eval/outcomes.js";

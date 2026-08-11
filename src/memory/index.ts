@@ -20,7 +20,7 @@
 
 /** Shape of a memory the agent wants to persist. */
 export interface MemoryInput {
-  /** "decision" | "finding" | "pattern" | "constraint" | "preference" */
+  /** "decision" | "finding" | "pattern" | "constraint" | "preference" | "failed_approach" */
   category: string;
   /** Short summary, e.g. "Use Stripe for payments". */
   title: string;
@@ -30,6 +30,17 @@ export interface MemoryInput {
   tags: string[];
   /** What triggered this memory (e.g. "user request", "code analysis"). */
   source?: string;
+  // P1: Structured provenance
+  /** Type of source: "human" | "agent" | "documentation" | "commit" | "configuration" | "code" | "test" | "explicit_user_instruction" */
+  sourceType?: string;
+  /** Evidence references (file paths, commit SHAs, URLs). */
+  evidence?: string[];
+  /** Scope of the decision (file path, module, or null for global). */
+  scope?: string;
+  /** Outcome: "success" | "failure" | null. Used for failed approach tracking. */
+  outcome?: string;
+  /** ID of the decision this one supersedes. */
+  supersedesId?: number;
 }
 
 /** A memory as returned to the agent, with bookkeeping fields attached. */
@@ -44,6 +55,15 @@ export interface MemoryResult {
   confidence: number;
   accessedAt: string | null;
   accessCount: number;
+  // P1: Structured decision memory
+  status: string;
+  scope: string | null;
+  supersedesId: number | null;
+  sourceType: string | null;
+  evidence: string[];
+  outcome: string | null;
+  reaffirmedCount: number;
+  lastReaffirmedAt: string | null;
 }
 
 /**
@@ -62,6 +82,15 @@ interface MemoryRow {
   confidence: number;
   accessed_at: string | null;
   access_count: number;
+  // P1: Structured decision memory
+  status: string;
+  scope: string | null;
+  supersedes_id: number | null;
+  source_type: string | null;
+  evidence_json: string;
+  outcome: string | null;
+  reaffirmed_count: number;
+  last_reaffirmed_at: string | null;
 }
 
 /**
@@ -76,6 +105,14 @@ export interface MemoryStore {
   touchMemory(id: number): void;
   forgetMemory(id: number): boolean;
   findMemoryConflicts(title: string, category: string): MemoryRow[];
+  // P1: Decision lifecycle
+  reaffirmMemory(id: number): boolean;
+  supersedeMemory(oldId: number, newId: number): boolean;
+  archiveMemory(id: number): boolean;
+  markContestedMemory(id: number): boolean;
+  rejectMemory(id: number): boolean;
+  getMemory(id: number): MemoryRow | undefined;
+  findFailedApproaches(query: string, limit?: number): MemoryRow[];
 }
 
 /**
@@ -99,13 +136,25 @@ export class AgentMemory {
     if (input.body.trim().length === 0) {
       throw new Error("Memory body must not be empty");
     }
-    return this.store.saveMemory({
+    const id = this.store.saveMemory({
       category: input.category,
       title: input.title,
       body: input.body,
       tags: input.tags,
       source: input.source,
+      sourceType: input.sourceType,
+      evidence: input.evidence,
+      scope: input.scope,
+      outcome: input.outcome,
+      supersedesId: input.supersedesId,
     });
+    // If this decision supersedes another, mark the old one.
+    // Done after save so the new ID is known and the old is only
+    // marked if the save succeeded.
+    if (input.supersedesId) {
+      this.store.supersedeMemory(input.supersedesId, id);
+    }
+    return id;
   }
 
   /**
@@ -162,6 +211,51 @@ export class AgentMemory {
     return this.store.forgetMemory(id);
   }
 
+  // ---- P1: Decision lifecycle ----
+
+  /**
+   * Reaffirm a decision — signals that this decision was referenced and
+   * found to still be valid. Increments reaffirmed_count and updates
+   * last_reaffirmed_at.
+   */
+  reaffirm(id: number): boolean {
+    return this.store.reaffirmMemory(id);
+  }
+
+  /**
+   * Supersede a decision — marks the old decision as 'superseded' and links
+   * it to the new one. The new decision should be saved first (with
+   * supersedesId set to the old id), then call this to update the old.
+   */
+  supersede(oldId: number, newId: number): boolean {
+    return this.store.supersedeMemory(oldId, newId);
+  }
+
+  /** Archive a decision — set status to 'expired'. */
+  archive(id: number): boolean {
+    return this.store.archiveMemory(id);
+  }
+
+  /** Mark a decision as contested — someone/something disagrees. */
+  markContested(id: number): boolean {
+    return this.store.markContestedMemory(id);
+  }
+
+  /** Reject a decision — set status to 'rejected'. */
+  reject(id: number): boolean {
+    return this.store.rejectMemory(id);
+  }
+
+  /**
+   * Find failed approaches relevant to a query.
+   * Returns memories with outcome='failure' that match the query.
+   * Used to surface past failures when the agent proposes a similar approach.
+   */
+  findFailedApproaches(query: string, limit?: number): MemoryResult[] {
+    const rows = this.store.findFailedApproaches(query, limit);
+    return rows.map((row) => this.toResult(row));
+  }
+
   /**
    * Convert a raw store row (snake_case, `tags_json` string) into the clean
    * `MemoryResult` shape (camelCase, parsed `tags` array). Falls back to an
@@ -177,6 +271,15 @@ export class AgentMemory {
     } catch {
       // Malformed or missing tags_json — treat as no tags.
     }
+    let evidence: string[] = [];
+    try {
+      const parsed: unknown = JSON.parse(row.evidence_json ?? "[]");
+      if (Array.isArray(parsed)) {
+        evidence = parsed.filter((t): t is string => typeof t === "string");
+      }
+    } catch {
+      // Malformed or missing evidence_json — treat as no evidence.
+    }
     return {
       id: row.id,
       timestamp: row.timestamp,
@@ -188,6 +291,15 @@ export class AgentMemory {
       confidence: row.confidence,
       accessedAt: row.accessed_at,
       accessCount: row.access_count,
+      // P1 fields
+      status: row.status ?? "active",
+      scope: row.scope ?? null,
+      supersedesId: row.supersedes_id ?? null,
+      sourceType: row.source_type ?? null,
+      evidence,
+      outcome: row.outcome ?? null,
+      reaffirmedCount: row.reaffirmed_count ?? 0,
+      lastReaffirmedAt: row.last_reaffirmed_at ?? null,
     };
   }
 }

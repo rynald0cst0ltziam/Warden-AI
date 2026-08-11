@@ -38,6 +38,8 @@ import { installHooks } from "./hooks.js";
 import { DEFAULT_OUTPUT_LEVEL, type OutputLevel } from "../output/index.js";
 import { runDoctor } from "./doctor.js";
 import { ccrSummary, ccrCleanup } from "../ccr/index.js";
+import { buildTaskReport, formatTaskReport, buildProjectReport } from "../measurement/report.js";
+import { gitContext, formatGitContext } from "../git/context.js";
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 
@@ -498,6 +500,88 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       }
     });
 
+  // ---- task-report command (P0a measurement) ----
+
+  program
+    .command("task-report")
+    .description(
+      "Show a task performance report: tokens saved, reduction %, guard results, task outcomes for a time range.",
+    )
+    .option("--since <iso>", "Start time (ISO 8601). Defaults to 24h ago.")
+    .option("--until <iso>", "End time (ISO 8601). Defaults to now.")
+    .option("--task <filter>", "Filter outcomes by task description (substring).")
+    .option("--all", "Show project-wide historical report instead of time range.")
+    .action(async (opts: { since?: string; until?: string; task?: string; all?: boolean }) => {
+      const warden = await Warden.create();
+      try {
+        if (opts.all) {
+          const report = buildProjectReport(warden.store);
+          const lines = [
+            "WARDEN PROJECT REPORT — ALL TIME",
+            "────────────────────────────────────────",
+            "",
+            `Total prune calls:     ${report.totalPruneCalls.toLocaleString()}`,
+            `Tokens processed:      ${report.totalTokensProcessed.toLocaleString()}`,
+            `Tokens saved (gross):  ${report.totalTokensSaved.toLocaleString()}`,
+            `Reduction:             ${report.reductionPct}%`,
+            "",
+            `Total tasks tracked:   ${report.totalTasks}`,
+            `Successful:            ${report.successfulTasks}`,
+            `Failed:                ${report.failedTasks}`,
+            `Success rate:          ${(report.successRate * 100).toFixed(1)}%`,
+            "",
+            `CCR cached originals:  ${report.ccrCount}`,
+            `CCR tokens retrievable: ${report.ccrTokensRetrievable.toLocaleString()}`,
+            "",
+          ];
+          if (report.recentOutcomes.length > 0) {
+            lines.push("RECENT TASK OUTCOMES");
+            for (const o of report.recentOutcomes) {
+              const status = o.success ? "SUCCESS" : "FAILURE";
+              const pruned = o.pruned ? "pruned" : "raw";
+              lines.push(
+                `  [${status.padEnd(7)}] ${o.task} (${pruned}, saved=${o.tokensSaved})`,
+              );
+            }
+            lines.push("");
+          }
+          lines.push("────────────────────────────────────────");
+          lines.push(`Total tokens avoided: ${report.totalTokensSaved.toLocaleString()}`);
+          process.stdout.write(lines.join("\n") + "\n");
+        } else {
+          const end = opts.until ?? new Date().toISOString();
+          const start = opts.since ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const report = buildTaskReport(warden.store, {
+            start,
+            end,
+            taskFilter: opts.task,
+          });
+          process.stdout.write(formatTaskReport(report) + "\n");
+        }
+      } finally {
+        warden.close();
+      }
+    });
+
+  // ---- git-context command (P3) ----
+
+  program
+    .command("git-context <file>")
+    .description("Show git history, blame, and change frequency for a file.")
+    .option("-s, --start <line>", "Start line for blame (1-based).")
+    .option("-e, --end <line>", "End line for blame (1-based).")
+    .option("-b, --blame", "Include line-level blame (slower).")
+    .option("-r, --repo <root>", "Repository root (defaults to cwd).")
+    .action(async (file: string, opts: { start?: string; end?: string; blame?: boolean; repo?: string }) => {
+      const root = opts.repo ?? process.cwd();
+      const ctx = gitContext(root, file, {
+        startLine: opts.start ? parseInt(opts.start, 10) : undefined,
+        endLine: opts.end ? parseInt(opts.end, 10) : undefined,
+        includeBlame: opts.blame,
+      });
+      process.stdout.write(formatGitContext(ctx) + "\n");
+    });
+
   // ---- dashboard command ----
 
   program
@@ -894,6 +978,49 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
         }
         process.stdout.write("\n");
       }
+    });
+
+  // ---- sufficient context command (P4) ----
+  program
+    .command("sufficient-context")
+    .description("Get unified context: files + past decisions + failed approaches + git volatility")
+    .argument("<task>", "Task description")
+    .option("-r, --root <path>", "Project root (defaults to cwd)")
+    .option("-n, --max-files <n>", "Max files to include", "15")
+    .option("-b, --budget <tokens>", "Token budget (trims package to fit)")
+    .option("--memory-limit <n>", "Max past decisions to recall", "5")
+    .option("--failed-limit <n>", "Max failed approaches to surface", "3")
+    .action(async (task, opts: { root?: string; maxFiles?: string; budget?: string; memoryLimit?: string; failedLimit?: string }) => {
+      const { sufficientContext, formatSufficientContext } = await import("../context/sufficient.js");
+      const { gitChangeFrequency } = await import("../git/context.js");
+      const { AgentMemory } = await import("../memory/index.js");
+      const { dbPath, findRepoRoot } = await import("../config/index.js");
+      const { SqliteStore } = await import("../store/sqlite.js");
+
+      const root = opts.root ?? process.cwd();
+      const wardenRoot = findRepoRoot(root);
+      const store = await SqliteStore.open(dbPath(wardenRoot));
+      const memory = new AgentMemory(store);
+
+      const result = await sufficientContext({
+        task,
+        repoRoot: root,
+        maxFiles: opts.maxFiles ? parseInt(opts.maxFiles, 10) : 15,
+        tokenBudget: opts.budget ? parseInt(opts.budget, 10) : undefined,
+        store,
+        memory: {
+          recall: (q, n) => memory.recall(q, n),
+          findFailedApproaches: (q, n) => memory.findFailedApproaches(q, n),
+        },
+        git: {
+          gitChangeFrequency: (r, p) => gitChangeFrequency(r, p),
+        },
+        memoryLimit: opts.memoryLimit ? parseInt(opts.memoryLimit, 10) : 5,
+        failedApproachLimit: opts.failedLimit ? parseInt(opts.failedLimit, 10) : 3,
+      });
+
+      process.stdout.write(formatSufficientContext(result) + "\n");
+      store.close();
     });
 
   // ---- outcome tracking command ----
