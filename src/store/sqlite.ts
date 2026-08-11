@@ -69,6 +69,15 @@ export interface MemoryRow {
   confidence: number;
   accessed_at: string | null;
   access_count: number;
+  // P1: Structured decision memory
+  status: string;
+  scope: string | null;
+  supersedes_id: number | null;
+  source_type: string | null;
+  evidence_json: string;
+  outcome: string | null;
+  reaffirmed_count: number;
+  last_reaffirmed_at: string | null;
 }
 
 export interface ContextSelectionRow {
@@ -267,6 +276,15 @@ export class SqliteStore {
     this.ensureColumn("memories", "access_count", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("memories", "confidence", "REAL NOT NULL DEFAULT 1.0");
     this.ensureColumn("memories", "source", "TEXT");
+    // P1: Structured decision memory — lifecycle, provenance, scope, outcome
+    this.ensureColumn("memories", "status", "TEXT NOT NULL DEFAULT 'active'");
+    this.ensureColumn("memories", "scope", "TEXT");
+    this.ensureColumn("memories", "supersedes_id", "INTEGER");
+    this.ensureColumn("memories", "source_type", "TEXT");
+    this.ensureColumn("memories", "evidence_json", "TEXT NOT NULL DEFAULT '[]'");
+    this.ensureColumn("memories", "outcome", "TEXT");
+    this.ensureColumn("memories", "reaffirmed_count", "INTEGER NOT NULL DEFAULT 0");
+    this.ensureColumn("memories", "last_reaffirmed_at", "TEXT");
     // Ensure FTS5 table + triggers exist (migration for older DBs)
     this.ensureMemoryFts();
   }
@@ -348,7 +366,7 @@ export class SqliteStore {
     // Guard against anything that isn't a plain identifier / type so this can
     // never become an injection vector even if a caller passes dynamic input.
     const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
-    const TYPE_RE = /^[A-Za-z_][A-Za-z0-9_ .]*$/;
+    const TYPE_RE = /^[A-Za-z_][A-Za-z0-9_ .'()\[\]*]*$/;
     if (!IDENT.test(table) || !IDENT.test(column) || !TYPE_RE.test(type)) {
       logger.warn("refusing unsafe column migration", { table, column, type });
       return;
@@ -483,6 +501,20 @@ export class SqliteStore {
       .all(limit) as unknown as DecisionRow[];
   }
 
+  /**
+   * Return prune decisions in a time range [start, end) (ISO timestamps).
+   * Used by the task report to aggregate token savings per task/session.
+   */
+  decisionsByTimeRange(start: string, end: string): DecisionRow[] {
+    return this.db
+      .prepare(
+        `SELECT * FROM decisions
+         WHERE timestamp >= ? AND timestamp < ?
+         ORDER BY timestamp ASC`,
+      )
+      .all(start, end) as unknown as DecisionRow[];
+  }
+
   totalTokensSaved(): number {
     const row = this.db
       .prepare(
@@ -560,11 +592,18 @@ export class SqliteStore {
     body: string;
     tags: string[];
     source?: string;
+    // P1: structured provenance
+    sourceType?: string;
+    evidence?: string[];
+    scope?: string;
+    outcome?: string;
+    supersedesId?: number;
   }): number {
     // Dedup: check for existing memory with same title (case-insensitive)
+    // Only dedup against active memories — superseded ones can be re-created
     const existing = this.db
       .prepare(
-        "SELECT id FROM memories WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) LIMIT 1",
+        "SELECT id FROM memories WHERE LOWER(TRIM(title)) = LOWER(TRIM(?)) AND status = 'active' LIMIT 1",
       )
       .get(opts.title) as { id: number } | undefined;
     if (existing) {
@@ -573,8 +612,10 @@ export class SqliteStore {
 
     const result = this.db
       .prepare(
-        `INSERT INTO memories (timestamp,category,title,body,tags_json,source,confidence)
-         VALUES (?,?,?,?,?,?,1.0)`,
+        `INSERT INTO memories
+           (timestamp,category,title,body,tags_json,source,confidence,
+            status,scope,supersedes_id,source_type,evidence_json,outcome)
+         VALUES (?,?,?,?,?,?,1.0,?,?,?,?,?,?)`,
       )
       .run(
         new Date().toISOString(),
@@ -583,6 +624,13 @@ export class SqliteStore {
         opts.body,
         JSON.stringify(opts.tags),
         opts.source ?? null,
+        // P1 fields
+        "active",
+        opts.scope ?? null,
+        opts.supersedesId ?? null,
+        opts.sourceType ?? null,
+        JSON.stringify(opts.evidence ?? []),
+        opts.outcome ?? null,
       );
     const id = Number(result.lastInsertRowid);
     // Sync FTS5 index (standalone table, no triggers)
@@ -595,6 +643,7 @@ export class SqliteStore {
     } catch {
       // FTS5 not available — recall will fall back to LIKE
     }
+
     return id;
   }
 
@@ -740,6 +789,149 @@ export class SqliteStore {
     return Number(result.changes) > 0;
   }
 
+  // ---- P1: Decision lifecycle methods ----
+
+  /** Reaffirm a decision — increment reaffirm count, update timestamp. */
+  reaffirmMemory(id: number): boolean {
+    const result = this.db
+      .prepare(
+        `UPDATE memories
+         SET reaffirmed_count = reaffirmed_count + 1,
+             last_reaffirmed_at = ?
+         WHERE id = ? AND status = 'active'`,
+      )
+      .run(new Date().toISOString(), id);
+    return Number(result.changes) > 0;
+  }
+
+  /**
+   * Supersede a decision — mark old as superseded, link to new.
+   * The new decision should be saved separately with supersedesId set.
+   * This method marks the old decision as superseded.
+   */
+  supersedeMemory(oldId: number, newId: number): boolean {
+    const result = this.db
+      .prepare(
+        `UPDATE memories
+         SET status = 'superseded', supersedes_id = ?
+         WHERE id = ? AND status = 'active'`,
+      )
+      .run(newId, oldId);
+    return Number(result.changes) > 0;
+  }
+
+  /** Archive a decision — set status to expired. */
+  archiveMemory(id: number): boolean {
+    const result = this.db
+      .prepare(
+        "UPDATE memories SET status = 'expired' WHERE id = ? AND status = 'active'",
+      )
+      .run(id);
+    return Number(result.changes) > 0;
+  }
+
+  /** Mark a decision as contested. */
+  markContestedMemory(id: number): boolean {
+    const result = this.db
+      .prepare(
+        "UPDATE memories SET status = 'contested' WHERE id = ? AND status = 'active'",
+      )
+      .run(id);
+    return Number(result.changes) > 0;
+  }
+
+  /** Reject a decision — set status to rejected. */
+  rejectMemory(id: number): boolean {
+    const result = this.db
+      .prepare(
+        "UPDATE memories SET status = 'rejected' WHERE id = ? AND status IN ('active','contested')",
+      )
+      .run(id);
+    return Number(result.changes) > 0;
+  }
+
+  /** Get a single memory by ID. */
+  getMemory(id: number): MemoryRow | undefined {
+    return this.db
+      .prepare("SELECT * FROM memories WHERE id = ?")
+      .get(id) as MemoryRow | undefined;
+  }
+
+  /**
+   * Find failed approaches — memories with outcome='failure'.
+   * Used to surface past failures when the agent proposes a similar approach.
+   */
+  findFailedApproaches(query: string, limit = 5): MemoryRow[] {
+    const trimmed = query.trim();
+    if (trimmed.length === 0) {
+      return this.db
+        .prepare(
+          `SELECT * FROM memories WHERE outcome = 'failure' AND status = 'active'
+           ORDER BY timestamp DESC LIMIT ?`,
+        )
+        .all(limit) as unknown as MemoryRow[];
+    }
+
+    // Use FTS5 to find failed approaches matching the query
+    try {
+      const ftsQuery = trimmed
+        .split(/[\s,]+/)
+        .filter((w) => w.length >= 2)
+        .map((w) => `"${w.replace(/"/g, '""')}"`)
+        .join(" OR ");
+
+      if (ftsQuery.length === 0) {
+        return this.db
+          .prepare(
+            `SELECT * FROM memories WHERE outcome = 'failure' AND status = 'active'
+             ORDER BY timestamp DESC LIMIT ?`,
+          )
+          .all(limit) as unknown as MemoryRow[];
+      }
+
+      return this.db
+        .prepare(
+          `SELECT m.* FROM memories m
+           JOIN memories_fts f ON f.rowid = m.id
+           WHERE m.outcome = 'failure' AND m.status = 'active'
+             AND memories_fts MATCH ?
+           ORDER BY f.rank, m.timestamp DESC
+           LIMIT ?`,
+        )
+        .all(ftsQuery, limit) as unknown as MemoryRow[];
+    } catch {
+      // FTS5 not available — fallback to LIKE
+      const words = trimmed
+        .split(/[\s,]+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length >= 2)
+        .map((w) => `%${w}%`);
+
+      if (words.length === 0) {
+        return this.db
+          .prepare(
+            `SELECT * FROM memories WHERE outcome = 'failure' AND status = 'active'
+             ORDER BY timestamp DESC LIMIT ?`,
+          )
+          .all(limit) as unknown as MemoryRow[];
+      }
+
+      const conditions = words.map(() => "title LIKE ? OR body LIKE ?").join(" OR ");
+      const params: (string | number)[] = words.flatMap((w) => [w, w]);
+      params.push(limit);
+
+      return this.db
+        .prepare(
+          `SELECT * FROM memories
+           WHERE outcome = 'failure' AND status = 'active'
+             AND (${conditions})
+           ORDER BY timestamp DESC
+           LIMIT ?`,
+        )
+        .all(...params) as unknown as MemoryRow[];
+    }
+  }
+
   // ---- context selections (Layer 1: input context) ----
 
   saveContextSelection(opts: {
@@ -834,6 +1026,63 @@ export class SqliteStore {
         row.pruned_total > 0 ? row.pruned_successes / row.pruned_total : 0,
       rawSuccessRate: row.raw_total > 0 ? row.raw_successes / row.raw_total : 0,
     };
+  }
+
+  /**
+   * Return task outcomes in a time range [start, end) (ISO timestamps).
+   * Used by the task report to correlate outcomes with pruning decisions.
+   */
+  taskOutcomesByTimeRange(start: string, end: string): Array<{
+    id: number;
+    timestamp: string;
+    task: string;
+    success: number;
+    pruned: number;
+    tokens_saved: number;
+    detail_json: string;
+  }> {
+    return this.db
+      .prepare(
+        `SELECT * FROM task_outcomes
+         WHERE timestamp >= ? AND timestamp < ?
+         ORDER BY timestamp ASC`,
+      )
+      .all(start, end) as Array<{
+      id: number;
+      timestamp: string;
+      task: string;
+      success: number;
+      pruned: number;
+      tokens_saved: number;
+      detail_json: string;
+    }>;
+  }
+
+  /**
+   * Return ALL task outcomes, most recent first. Used for historical reports.
+   */
+  recentTaskOutcomes(limit = 50): Array<{
+    id: number;
+    timestamp: string;
+    task: string;
+    success: number;
+    pruned: number;
+    tokens_saved: number;
+    detail_json: string;
+  }> {
+    return this.db
+      .prepare(
+        "SELECT * FROM task_outcomes ORDER BY timestamp DESC LIMIT ?",
+      )
+      .all(limit) as Array<{
+      id: number;
+      timestamp: string;
+      task: string;
+      success: number;
+      pruned: number;
+      tokens_saved: number;
+      detail_json: string;
+    }>;
   }
 
   // ---- CCR (Compress-Cache-Retrieve): reversible pruning ----

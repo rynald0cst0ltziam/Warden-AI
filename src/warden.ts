@@ -183,6 +183,7 @@ export class Warden {
 
   /** Full pipeline for one tool call. */
   async pruneCall(input: PruneCallInput): Promise<PruneCallResult> {
+    const t0 = performance.now();
     const classifyInput: ClassifyInput = {
       userMessage: input.userMessage ?? input.taskHint ?? "",
       recentTurns: input.recentTurns,
@@ -207,6 +208,7 @@ export class Warden {
     const rule = this.store.getRule(result.ruleId);
     const stage = (rule?.stage ?? "shadow") as RuleStage;
     const applied = stage === "active" || stage === "canary";
+    const durationMs = Math.round(performance.now() - t0);
 
     if (applied) {
       // CCR: store the original output so the agent can retrieve it if needed.
@@ -225,7 +227,7 @@ export class Warden {
         : result.prunedOutput;
 
       // Ship the pruned output, log the prune decision.
-      this.gate.recordPrune(result, true);
+      this.gate.recordPrune(result, true, durationMs);
       // Track token spend for budget caps (fire-and-forget, non-blocking).
       // Errors are logged at warn level (not silently swallowed) because a
       // failing budget tracker could mean budget caps aren't enforced.
@@ -258,7 +260,7 @@ export class Warden {
         task,
       );
     }
-    this.gate.recordPrune(result, false);
+    this.gate.recordPrune(result, false, durationMs);
     // Track token spend even in shadow mode (the tokens still went to the model).
     const tokensShippedRaw = result.tokensFull;
     recordSpend("project:default", tokensShippedRaw).catch(
