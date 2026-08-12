@@ -1109,6 +1109,64 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
     },
   );
 
+  // ---- P1: Memory lifecycle — mark contested ----
+  server.tool(
+    "warden_memory_mark_contested",
+    cd("Mark a decision as contested — signals disagreement. The decision stays visible but is flagged for review. Use when someone questions a decision but it's not yet resolved."),
+    {
+      id: z.number().describe("Memory ID to mark contested"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd)."),
+    },
+    async (args) => {
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const ok = projectMemory.markContested(args.id);
+      return {
+        content: [
+          {
+            type: "text",
+            text: ok
+              ? `Memory #${args.id} marked as contested.`
+              : `Memory #${args.id} not found or not active.`,
+          },
+        ],
+      };
+    },
+  );
+
+  // ---- P1: Memory lifecycle — reject ----
+  server.tool(
+    "warden_memory_reject",
+    cd("Reject a decision — mark as rejected (bad idea, do not proceed). Stronger than archive — the decision is explicitly wrong. Use when a decision is proven incorrect."),
+    {
+      id: z.number().describe("Memory ID to reject"),
+      repoRoot: z
+        .string()
+        .optional()
+        .describe("Project root directory for memory scoping (defaults to server cwd)."),
+    },
+    async (args) => {
+      const projectMemory = args.repoRoot
+        ? (await getProjectStore(args.repoRoot)).memory
+        : memory;
+      const ok = projectMemory.reject(args.id);
+      return {
+        content: [
+          {
+            type: "text",
+            text: ok
+              ? `Memory #${args.id} rejected.`
+              : `Memory #${args.id} not found or not active.`,
+          },
+        ],
+      };
+    },
+  );
+
   // ---- Verification upgrade: task outcome tracking ----
 
   server.tool(
