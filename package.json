@@ -1,7 +1,7 @@
 {
   "name": "warden-ai",
   "version": "0.2.17",
-  "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse.",
+  "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse. 71.4% average token reduction, 100% trust guard pass rate, 24ms overhead. Benchmarked.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "author": "Rynaldo Stoltz",
@@ -24,7 +24,11 @@
     "cursor",
     "claude-code",
     "codex",
-    "windsurf"
+    "windsurf",
+    "benchmark",
+    "token-reduction",
+    "trust-guard",
+    "local-first"
   ],
   "bin": {
     "warden": "bin/warden.js"
@@ -42,6 +46,8 @@
     "dist",
     "bin",
     "docs/assets/warden-banner.png",
+    "benchmarks/README.md",
+    "benchmarks/HONEST-NUMBERS.md",
     "README.md",
     "LICENSE",
     "TRADEMARK.md"

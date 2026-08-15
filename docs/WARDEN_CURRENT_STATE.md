@@ -425,11 +425,12 @@ Complete for current scope. No changes needed for P0.
 
 ### 8.3 What is missing for P0
 
-- No per-task report (raw vs optimized token breakdown per task)
-- No Warden overhead measurement
-- No net savings (gross - overhead)
-- No historical trend reports with date ranges
-- No comprehensive benchmark suite with baselines
+- ~~No per-task report (raw vs optimized token breakdown per task)~~ → **Done**: `warden task-report` + `buildTaskReport()`
+- ~~No Warden overhead measurement~~ → **Done**: `performance.now()` in `pruneCall()`, reported in task reports
+- ~~No net savings (gross - overhead)~~ → **Done**: `netTokensSaved` in task report
+- ~~No historical trend reports with date ranges~~ → **Done**: `warden task-report --since --until --all`
+- ~~No comprehensive benchmark suite with baselines~~ → **Done**: 25-task suite at `benchmarks/run-bench.ts`, raw CSV + JSON output, 71.4% overall reduction, 100% guard pass rate. See `benchmarks/README.md` and `benchmarks/HONEST-NUMBERS.md`.
+- Task outcome tokens were self-reported by agent → **Fixed**: auto-calculated from decisions table via `tokensSavedSince()`
 
 ---
 

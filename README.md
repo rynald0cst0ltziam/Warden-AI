@@ -23,6 +23,8 @@ Warden is an MCP server that drops into Claude Code, Cursor, Codex, Windsurf, Cl
 
 **50-90% fewer tokens. Zero config. Zero cloud. Zero lock-in.**
 
+> **Benchmarked.** 25-task suite. 71.4% overall reduction. 100% guard pass rate. 24ms avg overhead. [See the numbers →](benchmarks/README.md)
+
 ## Install
 
 **All platforms** (macOS, Linux, Windows, WSL):
@@ -113,6 +115,31 @@ warden_grep({ pattern: "function auth" })
 ```
 
 Every line in the pruned output exists verbatim in the raw — verified by the trust guard.
+
+<br>
+
+## Benchmarks
+
+25 tasks. Measured, not estimated. One command to reproduce:
+
+```bash
+npx tsx benchmarks/run-bench.ts
+```
+
+| Category | Tasks | Raw tokens | Pruned tokens | Reduction | Avg overhead |
+|:---------|------:|-----------:|--------------:|----------:|-------------:|
+| **grep** | 5 | 55,550 | 6,944 | **87.5%** | 44ms |
+| **file read** | 5 | 45,155 | 9,814 | **78.3%** | 4ms |
+| **generic** (auto-routed) | 5 | 38,061 | 5,400 | **85.8%** | 14ms |
+| **file compression** | 5 | 41,608 | 27,329 | **34.3%** | 48ms |
+| **test log** | 5 | 17,025 | 7,037 | **58.7%** | 8ms |
+| **OVERALL** | **25** | **197,399** | **56,524** | **71.4%** | **24ms** |
+
+- **100% trust guard pass rate** — every pruned line verified verbatim against raw
+- **24ms average overhead** — negligible vs agent API latency (1-10s)
+- **Raw data**: CSV + JSON in `benchmarks/results/`
+- **Honest numbers**: [HONEST-NUMBERS.md](benchmarks/HONEST-NUMBERS.md) — what these numbers mean and what they don't
+- **Methodology**: [benchmarks/README.md](benchmarks/README.md) — fixtures, task selection, reproduction
 
 <br>
 
@@ -273,7 +300,7 @@ Combines file recommendations, past decisions, failed approach warnings, git vol
 | `warden hud` | Live terminal HUD (Ctrl+C to exit) |
 | `warden dashboard` | Web UI at http://localhost:7878 |
 | `warden doctor` | Health check — 16 checks, clear pass/fail |
-| `warden benchmark` | Run actual benchmarks on real files |
+| `warden benchmark` | Run actual benchmarks on real files — see [benchmarks/README.md](benchmarks/README.md) |
 | `warden compress <file>` | Compress a memory file (max compression) |
 | `warden index` | Index project code structure |
 | `warden graph <fn>` | Query call graph: who calls X / what X calls |
@@ -338,7 +365,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (308 tests, 28 files) |
+| Tests | Vitest (313 tests, 29 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |

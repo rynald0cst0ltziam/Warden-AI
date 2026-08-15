@@ -1,0 +1,402 @@
+src/auth/middleware.ts:42:  if (!token) return res.status(401).json({ error: 'No token provided' });
+src/auth/middleware.ts:43:  try {
+src/auth/middleware.ts:44:    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+src/auth/middleware.ts:45:    req.user = decoded;
+src/auth/middleware.ts:46:    next();
+src/auth/middleware.ts:47:  } catch (err) {
+src/auth/middleware.ts:48:    return res.status(401).json({ error: 'Invalid token' });
+src/auth/middleware.ts:49:  }
+src/auth/middleware.ts:50:};
+src/auth/middleware.ts:51:
+src/auth/middleware.ts:52:export const requireAdmin = (req, res, next) => {
+src/auth/middleware.ts:53:  if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+src/auth/middleware.ts:54:  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+src/auth/middleware.ts:55:  next();
+src/auth/middleware.ts:56:};
+src/auth/middleware.ts:57:
+src/auth/middleware.ts:58:// Refresh token middleware
+src/auth/middleware.ts:59:export const refreshToken = async (req, res) => {
+src/auth/middleware.ts:60:  const { refreshToken } = req.body;
+src/auth/middleware.ts:61:  if (!refreshToken) return res.status(400).json({ error: 'Refresh token required' });
+src/auth/middleware.ts:62:  try {
+src/auth/middleware.ts:63:    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+src/auth/middleware.ts:64:    const newToken = jwt.sign({ id: decoded.id, role: decoded.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+src/auth/middleware.ts:65:    res.json({ token: newToken });
+src/auth/middleware.ts:66:  } catch (err) {
+src/auth/middleware.ts:67:    return res.status(401).json({ error: 'Invalid refresh token' });
+src/auth/middleware.ts:68:  }
+src/auth/middleware.ts:69:};
+src/auth/middleware.ts:70:
+src/auth/middleware.ts:71:// OAuth callback handler
+src/auth/middleware.ts:72:export const oauthCallback = async (req, res) => {
+src/auth/middleware.ts:73:  const { code, provider } = req.query;
+src/auth/middleware.ts:74:  if (!code || !provider) return res.status(400).json({ error: 'Code and provider required' });
+src/auth/middleware.ts:75:  try {
+src/auth/middleware.ts:76:    const tokens = await exchangeCodeForToken(code, provider);
+src/auth/middleware.ts:77:    const userInfo = await getUserInfo(tokens.access_token, provider);
+src/auth/middleware.ts:78:    let user = await User.findOne({ email: userInfo.email });
+src/auth/middleware.ts:79:    if (!user) {
+src/auth/middleware.ts:80:      user = await User.create({
+src/auth/middleware.ts:81:        email: userInfo.email,
+src/auth/middleware.ts:82:        name: userInfo.name,
+src/auth/middleware.ts:83:        provider,
+src/auth/middleware.ts:84:        providerId: userInfo.id,
+src/auth/middleware.ts:85:      });
+src/auth/middleware.ts:86:    }
+src/auth/middleware.ts:87:    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+src/auth/middleware.ts:88:    res.redirect(`/auth/callback?token=${token}`);
+src/auth/middleware.ts:89:  } catch (err) {
+src/auth/middleware.ts:90:    res.status(500).json({ error: 'OAuth authentication failed' });
+src/auth/middleware.ts:91:  }
+src/auth/middleware.ts:92:};
+src/auth/middleware.ts:93:
+src/auth/middleware.ts:94:// Rate limiting middleware
+src/auth/middleware.ts:95:export const rateLimit = (req, res, next) => {
+src/auth/middleware.ts:96:  const key = req.ip + ':' + (req.user?.id || 'anonymous');
+src/auth/middleware.ts:97:  const count = redis.incr(key);
+src/auth/middleware.ts:98:  if (count === 1) redis.expire(key, 60);
+src/auth/middleware.ts:99:  if (count > 100) return res.status(429).json({ error: 'Too many requests' });
+src/auth/middleware.ts:100:  next();
+src/auth/middleware.ts:101:};
+src/auth/middleware.ts:102:
+src/auth/middleware.ts:103:// Session middleware
+src/auth/middleware.ts:104:export const sessionAuth = async (req, res, next) => {
+src/auth/middleware.ts:105:  const sessionId = req.cookies?.sessionId;
+src/auth/middleware.ts:106:  if (!sessionId) return res.status(401).json({ error: 'No session' });
+src/auth/middleware.ts:107:  try {
+src/auth/middleware.ts:108:    const session = await Session.findById(sessionId);
+src/auth/middleware.ts:109:    if (!session || session.expiresAt < new Date()) {
+src/auth/middleware.ts:110:      return res.status(401).json({ error: 'Session expired' });
+src/auth/middleware.ts:111:    }
+src/auth/middleware.ts:112:    req.user = session.user;
+src/auth/middleware.ts:113:    req.session = session;
+src/auth/middleware.ts:114:    next();
+src/auth/middleware.ts:115:  } catch (err) {
+src/auth/middleware.ts:116:    return res.status(401).json({ error: 'Invalid session' });
+src/auth/middleware.ts:117:  }
+src/auth/middleware.ts:118:};
+src/auth/middleware.ts:119:
+src/auth/middleware.ts:120:// API key middleware
+src/auth/middleware.ts:121:export const apiKeyAuth = (req, res, next) => {
+src/auth/middleware.ts:122:  const apiKey = req.headers['x-api-key'];
+src/auth/middleware.ts:123:  if (!apiKey) return res.status(401).json({ error: 'API key required' });
+src/auth/middleware.ts:124:  try {
+src/auth/middleware.ts:125:    const key = await ApiKey.findOne({ key: apiKey, active: true });
+src/auth/middleware.ts:126:    if (!key) return res.status(401).json({ error: 'Invalid API key' });
+src/auth/middleware.ts:127:    if (key.expiresAt < new Date()) return res.status(401).json({ error: 'API key expired' });
+src/auth/middleware.ts:128:    req.apiKey = key;
+src/auth/middleware.ts:129:    next();
+src/auth/middleware.ts:130:  } catch (err) {
+src/auth/middleware.ts:131:    return res.status(401).json({ error: 'API key validation failed' });
+src/auth/middleware.ts:132:  }
+src/auth/middleware.ts:133:};
+src/auth/middleware.ts:134:
+src/auth/middleware.ts:135:// Two-factor authentication
+src/auth/middleware.ts:136:export const twoFactorAuth = async (req, res, next) => {
+src/auth/middleware.ts:137:  const { code } = req.body;
+src/auth/middleware.ts:138:  if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+src/auth/middleware.ts:139:  if (!req.user.twoFactorEnabled) return next();
+src/auth/middleware.ts:140:  if (!code) return res.status(403).json({ error: '2FA code required' });
+src/auth/middleware.ts:141:  const verified = speakeasy.totp.verify({
+src/auth/middleware.ts:142:    secret: req.user.twoFactorSecret,
+src/auth/middleware.ts:143:    encoding: 'base32',
+src/auth/middleware.ts:144:    token: code,
+src/auth/middleware.ts:145:  });
+src/auth/middleware.ts:146:  if (!verified) return res.status(403).json({ error: 'Invalid 2FA code' });
+src/auth/middleware.ts:147:  next();
+src/auth/middleware.ts:148:};
+src/auth/middleware.ts:149:
+src/auth/middleware.ts:150:// CORS middleware
+src/auth/middleware.ts:151:export const corsMiddleware = (req, res, next) => {
+src/auth/middleware.ts:152:  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+src/auth/middleware.ts:153:  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+src/auth/middleware.ts:154:  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+src/auth/middleware.ts:155:  res.setHeader('Access-Control-Allow-Credentials', 'true');
+src/auth/middleware.ts:156:  if (req.method === 'OPTIONS') return res.status(204).end();
+src/auth/middleware.ts:157:  next();
+src/auth/middleware.ts:158:};
+src/auth/middleware.ts:159:
+src/auth/middleware.ts:160:// Security headers
+src/auth/middleware.ts:161:export const securityHeaders = (req, res, next) => {
+src/auth/middleware.ts:162:  res.setHeader('X-Content-Type-Options', 'nosniff');
+src/auth/middleware.ts:163:  res.setHeader('X-Frame-Options', 'DENY');
+src/auth/middleware.ts:164:  res.setHeader('X-XSS-Protection', '1; mode=block');
+src/auth/middleware.ts:165:  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+src/auth/middleware.ts:166:  res.setHeader('Content-Security-Policy', "default-src 'self'");
+src/auth/middleware.ts:167:  next();
+src/auth/middleware.ts:168:};
+src/auth/middleware.ts:169:
+src/auth/middleware.ts:170:// Password reset middleware
+src/auth/middleware.ts:171:export const passwordReset = async (req, res) => {
+src/auth/middleware.ts:172:  const { email } = req.body;
+src/auth/middleware.ts:173:  if (!email) return res.status(400).json({ error: 'Email required' });
+src/auth/middleware.ts:174:  try {
+src/auth/middleware.ts:175:    const user = await User.findOne({ email });
+src/auth/middleware.ts:176:    if (!user) return res.status(404).json({ error: 'User not found' });
+src/auth/middleware.ts:177:    const resetToken = crypto.randomBytes(32).toString('hex');
+src/auth/middleware.ts:178:    user.resetPasswordToken = resetToken;
+src/auth/middleware.ts:179:    user.resetPasswordExpires = Date.now() + 3600000;
+src/auth/middleware.ts:180:    await user.save();
+src/auth/middleware.ts:181:    await sendEmail(user.email, 'Password Reset', `Reset link: ${process.env.APP_URL}/reset?token=${resetToken}`);
+src/auth/middleware.ts:182:    res.json({ message: 'Password reset email sent' });
+src/auth/middleware.ts:183:  } catch (err) {
+src/auth/middleware.ts:184:    res.status(500).json({ error: 'Password reset failed' });
+src/auth/middleware.ts:185:  }
+src/auth/middleware.ts:186:};
+src/auth/middleware.ts:187:
+src/auth/middleware.ts:188:// Email verification
+src/auth/middleware.ts:189:export const verifyEmail = async (req, res) => {
+src/auth/middleware.ts:190:  const { token } = req.params;
+src/auth/middleware.ts:191:  if (!token) return res.status(400).json({ error: 'Verification token required' });
+src/auth/middleware.ts:192:  try {
+src/auth/middleware.ts:193:    const user = await User.findOne({ emailVerificationToken: token });
+src/auth/middleware.ts:194:    if (!user) return res.status(400).json({ error: 'Invalid verification token' });
+src/auth/middleware.ts:195:    user.emailVerified = true;
+src/auth/middleware.ts:196:    user.emailVerificationToken = undefined;
+src/auth/middleware.ts:197:    await user.save();
+src/auth/middleware.ts:198:    res.json({ message: 'Email verified successfully' });
+src/auth/middleware.ts:199:  } catch (err) {
+src/auth/middleware.ts:200:    res.status(500).json({ error: 'Email verification failed' });
+src/auth/middleware.ts:201:  }
+src/auth/middleware.ts:202:};
+src/auth/middleware.ts:203:
+src/auth/middleware.ts:204:// Logout handler
+src/auth/middleware.ts:205:export const logout = async (req, res) => {
+src/auth/middleware.ts:206:  if (req.session) {
+src/auth/middleware.ts:207:    await Session.findByIdAndDelete(req.session._id);
+src/auth/middleware.ts:208:    res.clearCookie('sessionId');
+src/auth/middleware.ts:209:  }
+src/auth/middleware.ts:210:  res.json({ message: 'Logged out successfully' });
+src/auth/middleware.ts:211:};
+src/auth/middleware.ts:212:
+src/auth/middleware.ts:213:// Account deletion
+src/auth/middleware.ts:214:export const deleteAccount = async (req, res) => {
+src/auth/middleware.ts:215:  if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+src/auth/middleware.ts:216:  try {
+src/auth/middleware.ts:217:    await User.findByIdAndDelete(req.user._id);
+src/auth/middleware.ts:218:    await Session.deleteMany({ user: req.user._id });
+src/auth/middleware.ts:219:    await ApiKey.deleteMany({ user: req.user._id });
+src/auth/middleware.ts:220:    res.json({ message: 'Account deleted successfully' });
+src/auth/middleware.ts:221:  } catch (err) {
+src/auth/middleware.ts:222:    res.status(500).json({ error: 'Account deletion failed' });
+src/auth/middleware.ts:223:  }
+src/auth/middleware.ts:224:};
+src/auth/middleware.ts:225:
+src/auth/middleware.ts:226:// Role-based access control
+src/auth/middleware.ts:227:export const checkRole = (roles) => {
+src/auth/middleware.ts:228:  return (req, res, next) => {
+src/auth/middleware.ts:229:    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+src/auth/middleware.ts:230:    if (!roles.includes(req.user.role)) return res.status(403).json({ error: 'Insufficient permissions' });
+src/auth/middleware.ts:231:    next();
+src/auth/middleware.ts:232:  };
+src/auth/middleware.ts:233:};
+src/auth/middleware.ts:234:
+src/auth/middleware.ts:235:// Audit log middleware
+src/auth/middleware.ts:236:export const auditLog = (action) => {
+src/auth/middleware.ts:237:  return (req, res, next) => {
+src/auth/middleware.ts:238:    const logEntry = {
+src/auth/middleware.ts:239:      action,
+src/auth/middleware.ts:240:      user: req.user?._id,
+src/auth/middleware.ts:241:      ip: req.ip,
+src/auth/middleware.ts:242:      timestamp: new Date(),
+src/auth/middleware.ts:243:      path: req.path,
+src/auth/middleware.ts:244:      method: req.method,
+src/auth/middleware.ts:245:    };
+src/auth/middleware.ts:246:    AuditLog.create(logEntry).catch(console.error);
+src/auth/middleware.ts:247:    next();
+src/auth/middleware.ts:248:  };
+src/auth/middleware.ts:249:};
+src/auth/middleware.ts:250:
+src/routes/api.ts:10:import { authenticate, requireAdmin } from '../auth/middleware';
+src/routes/api.ts:11:import { validateInput } from '../middleware/validator';
+src/routes/api.ts:12:import { rateLimit } from '../auth/middleware';
+src/routes/api.ts:13:import { auditLog } from '../auth/middleware';
+src/routes/api.ts:14:
+src/routes/api.ts:15:router.get('/users', authenticate, rateLimit, async (req, res) => {
+src/routes/api.ts:16:  const users = await User.find().select('-password');
+src/routes/api.ts:17:  res.json(users);
+src/routes/api.ts:18:});
+src/routes/api.ts:19:
+src/routes/api.ts:20:router.get('/users/:id', authenticate, async (req, res) => {
+src/routes/api.ts:21:  const user = await User.findById(req.params.id).select('-password');
+src/routes/api.ts:22:  if (!user) return res.status(404).json({ error: 'User not found' });
+src/routes/api.ts:23:  res.json(user);
+src/routes/api.ts:24:});
+src/routes/api.ts:25:
+src/routes/api.ts:26:router.post('/users', authenticate, requireAdmin, validateInput, async (req, res) => {
+src/routes/api.ts:27:  const { email, name, role } = req.body;
+src/routes/api.ts:28:  const existing = await User.findOne({ email });
+src/routes/api.ts:29:  if (existing) return res.status(409).json({ error: 'User already exists' });
+src/routes/api.ts:30:  const user = await User.create({ email, name, role });
+src/routes/api.ts:31:  res.status(201).json(user);
+src/routes/api.ts:32:});
+src/routes/api.ts:33:
+src/routes/api.ts:34:router.put('/users/:id', authenticate, async (req, res) => {
+src/routes/api.ts:35:  const { name, role } = req.body;
+src/routes/api.ts:35:  const user = await User.findByIdAndUpdate(req.params.id, { name, role }, { new: true });
+src/routes/api.ts:36:  if (!user) return res.status(404).json({ error: 'User not found' });
+src/routes/api.ts:37:  res.json(user);
+src/routes/api.ts:38:});
+src/routes/api.ts:39:
+src/routes/api.ts:40:router.delete('/users/:id', authenticate, requireAdmin, async (req, res) => {
+src/routes/api.ts:41:  await User.findByIdAndDelete(req.params.id);
+src/routes/api.ts:42:  res.json({ message: 'User deleted' });
+src/routes/api.ts:43:});
+src/routes/api.ts:43:
+src/routes/api.ts:44:router.get('/posts', async (req, res) => {
+src/routes/api.ts:45:  const page = parseInt(req.query.page) || 1;
+src/routes/api.ts:46:  const limit = parseInt(req.query.limit) || 10;
+src/routes/api.ts:47:  const posts = await Post.find().skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 });
+src/routes/api.ts:48:  res.json(posts);
+src/routes/api.ts:49:});
+src/routes/api.ts:50:
+src/routes/api.ts:51:router.get('/posts/:id', async (req, res) => {
+src/routes/api.ts:52:  const post = await Post.findById(req.params.id).populate('author', 'name email');
+src/routes/api.ts:53:  if (!post) return res.status(404).json({ error: 'Post not found' });
+src/routes/api.ts:54:  res.json(post);
+src/routes/api.ts:55:});
+src/routes/api.ts:56:
+src/routes/api.ts:57:router.post('/posts', authenticate, validateInput, async (req, res) => {
+src/routes/api.ts:58:  const { title, content, tags } = req.body;
+src/routes/api.ts:59:  const post = await Post.create({ title, content, tags, author: req.user._id });
+src/routes/api.ts:60:  res.status(201).json(post);
+src/routes/api.ts:61:});
+src/routes/api.ts:62:
+src/routes/api.ts:63:router.put('/posts/:id', authenticate, async (req, res) => {
+src/routes/api.ts:64:  const { title, content } = req.body;
+src/routes/api.ts:65:  const post = await Post.findByIdAndUpdate(req.params.id, { title, content }, { new: true });
+src/routes/api.ts:66:  if (!post) return res.status(404).json({ error: 'Post not found' });
+src/routes/api.ts:67:  res.json(post);
+src/routes/api.ts:68:});
+src/routes/api.ts:69:
+src/routes/api.ts:70:router.delete('/posts/:id', authenticate, auditLog('delete_post'), async (req, res) => {
+src/routes/api.ts:71:  await Post.findByIdAndDelete(req.params.id);
+src/routes/api.ts:72:  res.json({ message: 'Post deleted' });
+src/routes/api.ts:73:});
+src/routes/api.ts:74:
+src/routes/api.ts:75:// Comments
+src/routes/api.ts:76:router.post('/posts/:id/comments', authenticate, async (req, res) => {
+src/routes/api.ts:77:  const { content } = req.body;
+src/routes/api.ts:78:  const post = await Post.findById(req.params.id);
+src/routes/api.ts:79:  if (!post) return res.status(404).json({ error: 'Post not found' });
+src/routes/api.ts:80:  const comment = { content, author: req.user._id, createdAt: new Date() };
+src/routes/api.ts:81:  post.comments.push(comment);
+src/routes/api.ts:82:  await post.save();
+src/routes/api.ts:83:  res.status(201).json(comment);
+src/routes/api.ts:84:});
+src/routes/api.ts:85:
+src/routes/api.ts:86:router.get('/posts/:id/comments', async (req, res) => {
+src/routes/api.ts:87:  const post = await Post.findById(req.params.id).populate('comments.author', 'name');
+src/routes/api.ts:88:  res.json(post.comments);
+src/routes/api.ts:89:});
+src/routes/api.ts:90:
+src/routes/api.ts:91:// Search
+src/routes/api.ts:92:router.get('/search', async (req, res) => {
+src/routes/api.ts:93:  const { q, type } = req.query;
+src/routes/api.ts:94:  if (!q) return res.status(400).json({ error: 'Query required' });
+src/routes/api.ts:95:  const results = await searchAll(q, type);
+src/routes/api.ts:96:  res.json(results);
+src/routes/api.ts:97:});
+src/routes/api.ts:98:
+src/routes/api.ts:99:// Health check
+src/routes/api.ts:100:router.get('/health', (req, res) => {
+src/routes/api.ts:101:  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+src/routes/api.ts:102:});
+src/routes/api.ts:103:
+src/routes/api.ts:104:// Metrics
+src/routes/api.ts:105:router.get('/metrics', authenticate, requireAdmin, async (req, res) => {
+src/routes/api.ts:106:  const metrics = {
+src/routes/api.ts:107:    users: await User.countDocuments(),
+src/routes/api.ts:108:    posts: await Post.countDocuments(),
+src/routes/api.ts:109:    comments: await Comment.countDocuments(),
+src/routes/api.ts:110:    uptime: process.uptime(),
+src/routes/api.ts:111:    memory: process.memoryUsage(),
+src/routes/api.ts:112:  };
+src/routes/api.ts:113:  res.json(metrics);
+src/routes/api.ts:114:});
+src/routes/api.ts:115:
+src/models/User.ts:5:import mongoose, { Schema, Document } from 'mongoose';
+src/models/User.ts:6:import bcrypt from 'bcryptjs';
+src/models/User.ts:7:
+src/models/User.ts:8:const userSchema = new Schema({
+src/models/User.ts:9:  email: { type: String, required: true, unique: true },
+src/models/User.ts:10:  password: { type: String, required: true, select: false },
+src/models/User.ts:11:  name: { type: String, required: true },
+src/models/User.ts:12:  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+src/models/User.ts:13:  emailVerified: { type: Boolean, default: false },
+src/models/User.ts:14:  twoFactorEnabled: { type: Boolean, default: false },
+src/models/User.ts:15:  twoFactorSecret: { type: String, select: false },
+src/models/User.ts:16:  resetPasswordToken: { type: String, select: false },
+src/models/User.ts:17:  resetPasswordExpires: { type: Date },
+src/models/User.ts:18:  emailVerificationToken: { type: String, select: false },
+src/models/User.ts:19:  provider: { type: String },
+src/models/User.ts:20:  providerId: { type: String },
+src/models/User.ts:21:  avatar: { type: String },
+src/models/User.ts:22:  bio: { type: String, maxlength: 500 },
+src/models/User.ts:23:  lastLoginAt: { type: Date },
+src/models/User.ts:24:  createdAt: { type: Date, default: Date.now },
+src/models/User.ts:25:  updatedAt: { type: Date, default: Date.now },
+src/models/User.ts:26:});
+src/models/User.ts:27:
+src/models/User.ts:28:userSchema.pre('save', async function(next) {
+src/models/User.ts:29:  if (!this.isModified('password')) return next();
+src/models/User.ts:30:  this.password = await bcrypt.hash(this.password, 12);
+src/models/User.ts:31:  next();
+src/models/User.ts:32:});
+src/models/User.ts:33:
+src/models/User.ts:34:userSchema.methods.comparePassword = async function(candidatePassword) {
+src/models/User.ts:35:  return bcrypt.compare(candidatePassword, this.password);
+src/models/User.ts:36:};
+src/models/User.ts:37:
+src/models/User.ts:38:userSchema.methods.toSafeObject = function() {
+src/models/User.ts:39:  const obj = this.toObject();
+src/models/User.ts:39:  delete obj.password;
+src/models/User.ts:40:  delete obj.twoFactorSecret;
+src/models/User.ts:41:  delete obj.resetPasswordToken;
+src/models/User.ts:42:  delete obj.emailVerificationToken;
+src/models/User.ts:43:  return obj;
+src/models/User.ts:44:};
+src/models/User.ts:45:
+src/models/User.ts:46:export default mongoose.model('User', userSchema);
+src/models/User.ts:47:
+src/utils/logger.ts:1:import winston from 'winston';
+src/utils/logger.ts:2:
+src/utils/logger.ts:3:export const logger = winston.createLogger({
+src/utils/logger.ts:4:  format: winston.format.combine(
+src/utils/logger.ts:5:    winston.format.timestamp(),
+src/utils/logger.ts:6:    winston.format.errors({ stack: true }),
+src/utils/logger.ts:7:    winston.format.json(),
+src/utils/logger.ts:8:  ),
+src/utils/logger.ts:9:  transports: [
+src/utils/logger.ts:10:    new winston.transports.Console({
+src/utils/logger.ts:11:      format: winston.format.combine(
+src/utils/logger.ts:12:        winston.format.colorize(),
+src/utils/logger.ts:13:        winston.format.simple(),
+src/utils/logger.ts:14:      ),
+src/utils/logger.ts:15:    }),
+src/utils/logger.ts:16:    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+src/utils/logger.ts:17:    new winston.transports.File({ filename: 'logs/combined.log' }),
+src/utils/logger.ts:18:  ],
+src/utils/logger.ts:19:});
+src/utils/logger.ts:20:
+src/utils/logger.ts:21:// Stream for Morgan HTTP logging
+src/utils/logger.ts:22:export const stream = {
+src/utils/logger.ts:23:  write: (message: string) => logger.info(message.trim()),
+src/utils/logger.ts:24:};
+src/utils/logger.ts:25:
+src/utils/logger.ts:26:// Request logging middleware
+src/utils/logger.ts:27:export const requestLogger = (req, res, next) => {
+src/utils/logger.ts:28:  const start = Date.now();
+src/utils/logger.ts:29:  res.on('finish', () => {
+src/utils/logger.ts:30:    const duration = Date.now() - start;
+src/utils/logger.ts:31:    logger.info({
+src/utils/logger.ts:32:      method: req.method,
+src/utils/logger.ts:32:      url: req.url,
+src/utils/logger.ts:33:      status: res.statusCode,
+src/utils/logger.ts:34:      duration: `${duration}ms`,
+src/utils/logger.ts:35:      ip: req.ip,
+src/utils/logger.ts:36:      userAgent: req.get('User-Agent'),
+src/utils/logger.ts:37:    });
+src/utils/logger.ts:38:  });
+src/utils/logger.ts:39:  next();
+src/utils/logger.ts:40:};
