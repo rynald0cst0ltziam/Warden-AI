@@ -107,57 +107,21 @@ Each task:
    measures the pruning engine's output compression, which is the deterministic
    core of what Warden does.
 
----
-
-## What Warden does NOT do
-
-### Things we're honest about:
-
-1. **No shell output compression.** Warden doesn't have compression patterns for
-   `git log`, `npm test`, `docker logs`, `cargo build`, etc. Competitors like
-   LeanCTX (95+ patterns) and context-mode do. This is a gap.
-
-2. **No AST-aware read modes.** Warden has tree-sitter indexing but doesn't expose
-   "signatures only" or "outline only" read modes to the agent. LeanCTX and Serena
-   do. File reads are 40-60% of token volume — this is the biggest missed
-   opportunity.
-
-3. **No PreToolUse hooks.** Warden prunes AFTER output is generated. It can't
-   prevent `cat huge_file.log` from running in the first place. context-mode and
-   OpenWolf have hooks.
-
-4. **No semantic search for memory.** Warden uses FTS5 (keyword search). If you
-   search "React state mistakes" it won't find a memory titled "don't use useEffect
-   for derived state" because the words don't match. Engram and local-memory-mcp
-   have vector search.
-
-5. **No multi-agent coordination.** If you run 3 agents simultaneously, Warden
-   can't coordinate them. Recall and LeanCTX have primitives for this.
-
-6. **No cloud, no sync.** Warden is local-only. Memories and rules don't sync
-   across machines. Engram offers git-based sync.
-
 7. **Token estimates are not exact.** `approxTokens()` is a heuristic. Real
-   tokenizer counts differ. We're transparent about this.
+   tokenizer counts differ by 5-15%. We're transparent about this.
 
 8. **No independent validation yet.** These are self-published benchmarks. We
    encourage independent verification — run `npx tsx benchmarks/run-bench.ts`
-   yourself and check the numbers. We'd love for JetBrains, Anthropic, or any
-   third party to run their own benchmarks.
+   yourself and check the numbers.
 
 ---
 
 ## How to verify these numbers
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-org/warden.git
-cd warden
-
-# Install dependencies
+git clone https://github.com/rynald0cst0ltziam/Warden-AI.git
+cd Warden-AI
 npm install
-
-# Run the benchmark
 npx tsx benchmarks/run-bench.ts
 ```
 
@@ -170,28 +134,6 @@ This runs the exact same 25 tasks and outputs:
 
 Compare your numbers to ours. They should be within 1-2% (the only variance is
 from `performance.now()` overhead measurement).
-
----
-
-## What we're working on next
-
-Based on our gap analysis (`docs/GAP_ANALYSIS.md`):
-
-1. **AST-aware read modes** — expose tree-sitter parsing as agent-callable read
-   modes (signatures, outline, diff, task-filtered). Targets the 40-60% of tokens
-   spent on file reads.
-
-2. **Shell output compression** — patterns for git, npm, docker, cargo, pytest.
-   Closes the gap with LeanCTX and context-mode.
-
-3. **PreToolUse hooks** — prevent flooding before it happens, not just clean up
-   after.
-
-4. **Semantic search** — vector embeddings alongside FTS5 for memory recall.
-
-5. **End-to-end agent benchmark** — measure total token usage in a real agent
-   session with vs without Warden. This requires API credits and is
-   non-deterministic, but it's the number that actually matters to users.
 
 ---
 

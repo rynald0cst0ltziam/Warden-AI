@@ -21,3 +21,7 @@ coverage/
 .devin/mcp_config.json
 .vscode/mcp.json
 .mcp.json
+
+# Private internal docs (not for public repo)
+docs/GAP_ANALYSIS.md
+docs/WARDEN_CURRENT_STATE.md
