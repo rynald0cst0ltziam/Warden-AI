@@ -26,6 +26,7 @@ import { logger } from "../logging/index.js";
 import { selectContext, type CodeIndexStore } from "../context/index.js";
 import { AgentMemory } from "../memory/index.js";
 import { TaskTracker } from "../eval/outcomes.js";
+import { runWatchdog } from "../watchdog/index.js";
 import { compressFile } from "../compress/index.js";
 import { CodeIndex } from "../index/indexer.js";
 import { GraphQuery } from "../index/graph.js";
@@ -1715,9 +1716,35 @@ export async function runMcpServer(): Promise<void> {
   logger.info("warden MCP server running on stdio", {
     rules: warden.status().length,
   });
+
+  // Run watchdog periodically to catch regressions automatically.
+  // Checks both confidence decay and task outcome regression.
+  // Interval is configurable via WARDEN_WATCHDOG_INTERVAL_MS (default: 5 min).
+  const watchdogIntervalMs = parseInt(
+    process.env.WARDEN_WATCHDOG_INTERVAL_MS ?? "300000",
+    10,
+  );
+  const watchdogTimer = setInterval(async () => {
+    try {
+      const result = await runWatchdog(warden);
+      if (result.reverted || result.alerted) {
+        logger.info("watchdog periodic run completed", {
+          reverted: result.reverted,
+          alerted: result.alerted,
+          taskRegression: !!result.taskRegression,
+        });
+      }
+    } catch (e) {
+      logger.warn("watchdog periodic run failed", {
+        error: (e as Error).message,
+      });
+    }
+  }, watchdogIntervalMs);
+
   // Keep the process alive until the transport closes.
   return new Promise((resolve) => {
     transport.onclose = () => {
+      clearInterval(watchdogTimer);
       warden.close();
       resolve();
     };
