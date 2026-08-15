@@ -15,6 +15,7 @@ the cuts are safe via a shadow-mode eval gate. TypeScript, ESM, Node >= 22.5
 - `npm test` — run the test suite (vitest) — includes property-based guard tests
 - `npm run warden status` — run the CLI via tsx (smoke test that the orchestrator + store + HUD work end-to-end)
 - `npm run warden prune -t grep -i <file>` — smoke test the pruning pipeline on a real input
+- `npx tsx benchmarks/run-bench.ts` — run the 25-task benchmark suite (outputs CSV + JSON to `benchmarks/results/`)
 - `npm run format` / `npm run format:check` — prettier
 
 Always run `npm run typecheck` and `npm test` after code changes. If you add

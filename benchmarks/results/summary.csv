@@ -1,0 +1,6 @@
+category,tasks,raw_tokens,pruned_tokens,tokens_saved,reduction_pct,avg_overhead_ms
+grep,5,55550,6944,48606,87.5,44
+testlog,5,17025,7037,9988,58.7,8
+fileread,5,45155,9814,35341,78.3,4
+generic,5,38061,5400,32661,85.8,14
+compress,5,41608,27329,14279,34.3,48

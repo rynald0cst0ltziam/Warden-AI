@@ -7,9 +7,12 @@
  *
  * How it works:
  *   1. The agent calls `recordOutcome` after finishing a task, reporting success/failure.
- *   2. Warden correlates this with whether pruning was applied during the task.
- *   3. Over time, we compare: success rate with pruning vs. without.
- *   4. If pruned success rate drops below raw success rate, that's a regression signal.
+ *   2. Warden auto-calculates tokens saved from actual pruning decisions in the
+ *      decisions table (sum of tokens_saved since the last task outcome).
+ *      If the agent self-reports tokensSaved, that value is used instead.
+ *   3. Warden correlates this with whether pruning was applied during the task.
+ *   4. Over time, we compare: success rate with pruning vs. without.
+ *   5. If pruned success rate drops below raw success rate, that's a regression signal.
  *
  * This is the evidence that compression didn't degrade outcomes — not just that
  * the right lines were kept, but that the agent's actual performance was maintained.

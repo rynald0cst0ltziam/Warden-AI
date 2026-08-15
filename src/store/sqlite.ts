@@ -524,6 +524,33 @@ export class SqliteStore {
     return row?.s ?? 0;
   }
 
+  /**
+   * Sum of tokens saved by pruning decisions since a given timestamp.
+   * Used to auto-calculate task outcome token savings from actual pruning data
+   * instead of relying on agent self-report.
+   */
+  tokensSavedSince(timestamp: string): number {
+    const row = this.db
+      .prepare(
+        "SELECT COALESCE(SUM(tokens_saved),0) AS s FROM decisions WHERE kind='prune' AND timestamp > ?",
+      )
+      .get(timestamp) as { s: number } | undefined;
+    return row?.s ?? 0;
+  }
+
+  /**
+   * Timestamp of the most recent task outcome, or null if none exist.
+   * Used to determine the time window for auto-calculating token savings.
+   */
+  lastTaskOutcomeTimestamp(): string | null {
+    const row = this.db
+      .prepare(
+        "SELECT timestamp FROM task_outcomes ORDER BY timestamp DESC LIMIT 1",
+      )
+      .get() as { timestamp: string } | undefined;
+    return row?.timestamp ?? null;
+  }
+
   /** Total tokens processed (full, before pruning). */
   totalTokensProcessed(): number {
     const row = this.db
@@ -968,6 +995,17 @@ export class SqliteStore {
     tokensSaved?: number;
     detail?: Record<string, unknown>;
   }): void {
+    // Auto-calculate tokens saved from actual pruning decisions if the agent
+    // didn't self-report. Sums all 'prune' decisions since the last task
+    // outcome (or all decisions if this is the first outcome).
+    let tokensSaved = opts.tokensSaved;
+    if (tokensSaved === undefined || tokensSaved === 0) {
+      const since = this.lastTaskOutcomeTimestamp();
+      tokensSaved = since
+        ? this.tokensSavedSince(since)
+        : this.totalTokensSaved();
+    }
+
     this.db
       .prepare(
         `INSERT INTO task_outcomes (timestamp,task,success,pruned,tokens_saved,detail_json)
@@ -978,8 +1016,11 @@ export class SqliteStore {
         opts.task,
         opts.success ? 1 : 0,
         opts.pruned ? 1 : 0,
-        opts.tokensSaved ?? 0,
-        JSON.stringify(opts.detail ?? {}),
+        tokensSaved,
+        JSON.stringify({
+          ...opts.detail,
+          autoCalculated: opts.tokensSaved === undefined,
+        }),
       );
   }
 

@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-08-15T15:51:59.380Z",
+  "wardenVersion": "1.0.0",
+  "totalTasks": 25,
+  "guardAllPassed": true,
+  "overall": {
+    "rawTokens": 197399,
+    "prunedTokens": 56524,
+    "tokensSaved": 140875,
+    "reductionPct": 71.4,
+    "totalOverheadMs": 588
+  },
+  "byCategory": [
+    {
+      "category": "grep",
+      "tasks": 5,
+      "raw": 55550,
+      "pruned": 6944,
+      "saved": 48606,
+      "reductionPct": 87.5,
+      "avgOverheadMs": 44
+    },
+    {
+      "category": "testlog",
+      "tasks": 5,
+      "raw": 17025,
+      "pruned": 7037,
+      "saved": 9988,
+      "reductionPct": 58.7,
+      "avgOverheadMs": 8
+    },
+    {
+      "category": "fileread",
+      "tasks": 5,
+      "raw": 45155,
+      "pruned": 9814,
+      "saved": 35341,
+      "reductionPct": 78.3,
+      "avgOverheadMs": 4
+    },
+    {
+      "category": "generic",
+      "tasks": 5,
+      "raw": 38061,
+      "pruned": 5400,
+      "saved": 32661,
+      "reductionPct": 85.8,
+      "avgOverheadMs": 14
+    },
+    {
+      "category": "compress",
+      "tasks": 5,
+      "raw": 41608,
+      "pruned": 27329,
+      "saved": 14279,
+      "reductionPct": 34.3,
+      "avgOverheadMs": 48
+    }
+  ]
+}

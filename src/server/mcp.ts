@@ -1171,7 +1171,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
 
   server.tool(
     "warden_record_outcome",
-    cd("Record task outcome (success/failure). Warden correlates with pruning to detect regressions. Call AFTER completing task."),
+    cd("Record task outcome (success/failure). Warden auto-calculates tokens saved from actual pruning data. Call AFTER completing task."),
     {
       task: z
         .string()
@@ -1183,7 +1183,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
       tokensSaved: z
         .number()
         .optional()
-        .describe("Tokens saved by pruning during this task"),
+        .describe("Tokens saved by pruning (optional — Warden auto-calculates from actual pruning decisions if omitted)"),
       repoRoot: z
         .string()
         .optional()
