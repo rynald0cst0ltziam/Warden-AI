@@ -1,0 +1,198 @@
+Compiling proc-macro2 v1.0.86
+Compiling unicode-ident v1.0.13
+Compiling libc v0.2.158
+Compiling cfg-if v1.0.0
+Compiling autocfg v1.3.0
+Compiling version_check v0.9.5
+Compiling memchr v2.7.4
+Compiling serde v1.0.210
+Compiling serde_derive v1.0.210
+Compiling bitflags v2.6.0
+Compiling bytes v1.7.1
+Compiling once_cell v1.19.0
+Compiling smallvec v1.13.2
+Compiling pin-project-lite v0.2.14
+Compiling futures-core v0.3.30
+Compiling futures-sink v0.3.30
+Compiling futures-task v0.3.30
+Compiling futures-util v0.3.30
+Compiling futures-channel v0.3.30
+Compiling futures-io v0.3.30
+Compiling futures-macro v0.3.30
+Compiling slab v0.4.9
+Compiling lock_api v0.4.12
+Compiling parking_lot_core v0.9.14
+Compiling parking_lot v0.4.12
+Compiling tokio-util v0.7.12
+Compiling tokio v1.40.0
+Compiling socket2 v0.5.7
+Compiling mio v1.0.2
+Compiling num_cpus v1.16.0
+Compiling cpu-traits v0.2.0
+Compiling tracing-core v0.1.32
+Compiling tracing v0.1.40
+Compiling tracing-subscriber v0.3.18
+Compiling tracing-attributes v0.1.40
+Compiling tracing-futures v0.2.5
+Compiling tower-service v0.3.3
+Compiling tower-layer v0.3.3
+Compiling tower v0.5.0
+Compiling tower-http v0.6.0
+Compiling axum-core v0.7.7
+Compiling axum v0.7.7
+Compiling hyper v1.4.1
+Compiling hyper-util v0.1.8
+Compiling http-body-util v0.1.2
+Compiling http-body v1.0.1
+Compiling http v1.1.0
+Compiling h2 v0.3.26
+Compiling headers v0.4.0
+Compiling headers-core v0.3.0
+Compiling mime v0.3.17
+Compiling percent-encoding v2.3.1
+Compiling form_urlencoded v1.2.1
+Compiling url v2.5.2
+Compiling idna v1.0.0
+Compiling icu_normalizer v1.5.0
+Compiling icu_properties v1.5.0
+Compiling icu_collections v1.5.0
+Compiling icu_locid_transform v1.5.0
+Compiling icu_locid v1.5.0
+Compiling tinystr v0.7.6
+Compiling write16 v0.2.0
+Compiling writeable v0.5.5
+Compiling yoke v0.7.0
+Compiling zerofrom v0.1.4
+Compiling zerovec v0.10.4
+Compiling stable_deref_trait v1.2.0
+Compiling litemap v0.7.3
+Compiling zerotrie v0.1.0
+Compiling displaydoc v0.2.5
+Compiling utf16_iter v1.0.0
+Compiling utf8_iter v1.0.0
+Compiling potential_utf v0.2.1
+Compiling icu_provider v1.5.0
+Compiling icu_provider_macros v1.5.0
+Compiling syn v2.0.77
+Compiling quote v1.0.37
+Compiling log v0.4.22
+Compiling env_logger v0.11.5
+Compiling regex v1.10.6
+Compiling regex-automata v0.4.7
+Compiling regex-syntax v0.8.4
+Compiling aho-corasick v1.1.3
+Compiling same-file v1.0.6
+Compiling walkdir v2.5.0
+Compiling tempfile v3.12.0
+Compiling fastrand v2.1.1
+Compiling rustix v0.38.37
+Compiling linux-raw-sys v0.4.14
+Compiling which v6.0.2
+Compiling either v1.13.0
+Compiling home v0.5.9
+Compiling dunce v1.0.5
+Compiling dirs-sys v0.4.1
+Compiling dirs v5.0.1
+Compiling option-ext v0.2.0
+Compiling serde_json v1.0.128
+Compiling itoa v1.0.11
+Compiling ryu v1.0.18
+Compiling serde_yaml v0.9.34
+Compiling unsafe-libyaml v0.2.11
+Compiling indexmap v2.5.0
+Compiling hashbrown v0.14.5
+Compiling equivalent v1.0.1
+Compiling toml v0.8.19
+Compiling toml_datetime v0.6.8
+Compiling toml_edit v0.22.20
+Compiling toml_parser v0.1.2
+Compiling winnow v0.6.20
+Compiling clap v4.5.18
+Compiling clap_builder v4.5.18
+Compiling clap_derive v4.5.18
+Compiling clap_lex v0.7.2
+Compiling anstream v0.6.15
+Compiling anstyle v1.0.8
+Compiling anstyle-parse v0.2.5
+Compiling anstyle-query v1.1.1
+Compiling colorchoice v1.0.2
+Compiling strsim v0.11.1
+Compiling utf8parse v0.2.2
+Compiling is_terminal_polyfill v1.70.1
+Compiling anyhow v1.0.88
+Compiling thiserror v1.0.63
+Compiling thiserror-impl v1.0.63
+Compiling reqwest v0.12.7
+Compiling reqwest-middleware v0.3.3
+Compiling reqwest-retry v0.5.0
+Compiling hyper-rustls v0.27.3
+Compiling rustls v0.23.13
+Compiling rustls-pemfile v2.1.3
+Compiling rustls-webpki v0.102.7
+Compiling ring v0.17.7
+Compiling untrusted v0.9.0
+Compiling spin v0.9.8
+Compiling zeroize v1.8.1
+Compiling base64 v0.22.1
+Compiling subtle v2.6.1
+Compiling crypto-common v0.1.6
+Compiling generic-array v1.1.0
+Compiling digest v0.10.7
+Compiling sha2 v0.10.8
+Compiling block-buffer v0.10.4
+Compiling hmac v0.12.1
+Compiling md-5 v0.10.6
+Compiling const-oid v0.9.6
+Compiling der v0.7.9
+Compiling spki v0.7.3
+Compiling pkcs8 v0.10.2
+Compiling sec1 v0.7.3
+Compiling pem-rfc7468 v0.7.0
+warning: unused import: `std::collections::HashMap` in src/main.rs:15:5
+  --> src/main.rs:15:5
+   |
+15 | use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+warning: unused variable: `config_path` in src/config.rs:42:9
+  --> src/config.rs:42:9
+   |
+42 |     let config_path = env::var("CONFIG_PATH").unwrap_or_default();
+   |         ^^^^^^^^^^^ help: if this is intentional, consider using `_config_path`
+warning: unused variable: `retry_count` in src/client.rs:78:13
+  --> src/client.rs:78:13
+   |
+78 |         let retry_count = self.config.retry_attempts;
+   |             ^^^^^^^^^^^ help: if this is intentional, consider using `_retry_count`
+warning: function `format_duration` is never used in src/utils.rs:10:5
+  --> src/utils.rs:10:5
+   |
+10 |     fn format_duration(d: Duration) -> String {
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+warning: method `validate_email` is never used in src/validators.rs:25:5
+  --> src/validators.rs:25:5
+   |
+25 |     pub fn validate_email(email: &str) -> Result<(), ValidationError> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: field `metadata` is never read in src/models.rs:18:5
+  --> src/models.rs:18:5
+   |
+18 |     pub metadata: Option<serde_json::Value>,
+   |     ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+warning: unused import: `tokio::sync::Mutex` in src/server.rs:8:5
+  --> src/server.rs:8:5
+   |
+ 8 | use tokio::sync::Mutex;
+   |     ^^^^^^^^^^^^^^^^^^
+warning: unused variable: `port` in src/server.rs:55:9
+  --> src/server.rs:55:9
+   |
+55 |     let port = config.port;
+   |         ^^^^ help: if this is intentional, consider using `_port`
+Compiling warden v0.1.0 (/home/user/warden)
+Finished dev [unoptimized + debuginfo] target(s) in 42.3s

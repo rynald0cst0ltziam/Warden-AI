@@ -15,6 +15,7 @@ export type ToolType =
   | "search"
   | "file-read"
   | "test-log"
+  | "shell-output"
   | "web-fetch"
   | "json"
   | "generic";
@@ -31,6 +32,14 @@ export interface PruneOptions {
   fileReadLargeThresholdLines?: number;
   grepMaxMatches?: number;
   testLogFailureContextLines?: number;
+  /** Shell output: max lines to keep for tail-heavy outputs (docker logs, kubectl logs). */
+  shellTailLines?: number;
+  /** Shell output: max lines to keep for git log before collapsing. */
+  shellGitLogMaxCommits?: number;
+  /** Shell output: max lines to keep for find/tree output before collapsing. */
+  shellFindMaxResults?: number;
+  /** Shell output: max lines to keep for ps aux before collapsing. */
+  shellPsMaxProcesses?: number;
   /**
    * Optional code index for AST-based file outlines. When provided, the
    * fileread module uses tree-sitter-parsed symbols instead of regex-based

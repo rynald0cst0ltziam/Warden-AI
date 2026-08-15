@@ -1,6 +1,6 @@
 # Warden Benchmark Suite
 
-> 25 tasks. Measured, not estimated. One command to reproduce.
+> 30 tasks. Measured, not estimated. One command to reproduce.
 
 ## Quick start
 
@@ -21,23 +21,24 @@ Output:
 
 | Metric | Value |
 |---|---|
-| Tasks | 25 |
-| Raw tokens | 197,399 |
-| Pruned tokens | 56,524 |
-| Tokens saved | 140,875 |
-| **Reduction** | **71.4%** |
+| Tasks | 30 |
+| Raw tokens | 214,580 |
+| Pruned tokens | 59,449 |
+| Tokens saved | 155,131 |
+| **Reduction** | **72.3%** |
 | Guard pass rate | 100% |
-| Avg overhead | 24ms/task |
+| Avg overhead | 8ms/task |
 
 ### By category
 
 | Category | Tasks | Raw | Pruned | Saved | Reduction | Avg overhead |
 |---|---:|---:|---:|---:|---:|---:|
-| grep | 5 | 55,550 | 6,944 | 48,606 | 87.5% | 44ms |
-| fileread | 5 | 45,155 | 9,814 | 35,341 | 78.3% | 4ms |
-| generic | 5 | 38,061 | 5,400 | 32,661 | 85.8% | 14ms |
-| compress | 5 | 41,608 | 27,329 | 14,279 | 34.3% | 48ms |
-| testlog | 5 | 17,025 | 7,037 | 9,988 | 58.7% | 8ms |
+| grep | 5 | 55,655 | 6,944 | 48,711 | 87.5% | 17ms |
+| fileread | 5 | 45,360 | 9,814 | 35,546 | 78.4% | 6ms |
+| generic | 5 | 38,166 | 3,495 | 34,671 | 90.8% | 9ms |
+| shell-output | 5 | 16,556 | 4,226 | 12,330 | 74.5% | 4ms |
+| compress | 5 | 41,763 | 27,933 | 13,830 | 33.1% | 11ms |
+| testlog | 5 | 17,080 | 7,037 | 10,043 | 58.8% | 4ms |
 
 ### Per-task
 
@@ -63,6 +64,11 @@ Output:
 | gen-003 | generic: source file as generic | 9,031 | 1,052 | 7,979 | 88.4% | ✓ | 36ms |
 | gen-004 | generic: grep output (broad task) | 11,110 | 1,611 | 9,499 | 85.5% | ✓ | 11ms |
 | gen-005 | generic: test output (broad task) | 3,405 | 699 | 2,706 | 79.5% | ✓ | 5ms |
+| shell-001 | shell: git log (50 commits) | 3,813 | 1,361 | 2,452 | 64.3% | ✓ | 4ms |
+| shell-002 | shell: docker logs (server crash) | 5,412 | 1,912 | 3,500 | 64.7% | ✓ | 5ms |
+| shell-003 | shell: npm install (487 packages) | 2,020 | 553 | 1,467 | 72.6% | ✓ | 2ms |
+| shell-004 | shell: cargo build (150 crates) | 2,532 | 366 | 2,166 | 85.5% | ✓ | 5ms |
+| shell-005 | shell: find (147 files) | 2,779 | 34 | 2,745 | 98.8% | ✓ | 6ms |
 | comp-001 | compress: source file (lite) | 9,031 | 6,377 | 2,654 | 29.4% | ✓ | 101ms |
 | comp-002 | compress: source file (full) | 9,031 | 6,377 | 2,654 | 29.4% | ✓ | 11ms |
 | comp-003 | compress: source file (ultra) | 9,031 | 6,343 | 2,688 | 29.8% | ✓ | 33ms |
@@ -98,6 +104,11 @@ purposes — we're measuring relative reduction, not absolute token counts.
 | `grep-large.txt` | 23KB | 402 | Realistic grep output: auth middleware, API routes, models, utils |
 | `test-output-large.txt` | 10KB | 209 | 187 passing tests across 10 test suites |
 | `source-large.ts` | 25KB | 835 | Database service module with CRUD, sessions, audit, backup, health |
+| `shell-git-log.txt` | 13KB | 392 | 50 git log commits with realistic messages |
+| `shell-docker-logs.txt` | 11KB | 163 | Docker container logs with INFO/WARN/ERROR lines |
+| `shell-npm-install.txt` | 4KB | 124 | npm install output with 487 packages |
+| `shell-cargo-build.txt` | 6KB | 198 | Cargo build output with 150 crates + warnings |
+| `shell-find.txt` | 6KB | 147 | find output with 147 file paths |
 
 ### Task categories
 
@@ -111,6 +122,9 @@ purposes — we're measuring relative reduction, not absolute token counts.
   content-aware routing (auto-detecting type from content).
 - **compress** (5 tasks): File compression at lite/full/ultra levels. Tests
   deterministic compression (different mechanism than pruning).
+- **shell-output** (5 tasks): Shell command output (git log, docker logs, npm
+  install, cargo build, find). Tests the 24-pattern shell-output pruning module
+  with content-aware detection and per-command compression strategies.
 
 ### Trust guard verification
 

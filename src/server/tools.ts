@@ -574,7 +574,7 @@ export async function wardenRunCommand(
 
   const result = await pruneAndShip(
     warden,
-    "generic",
+    "shell-output",
     raw,
     `run: ${cmd}`,
     "warden_run_command",

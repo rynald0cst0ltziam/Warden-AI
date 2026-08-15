@@ -1,0 +1,392 @@
+commit a1b2c3d4e5f6789012345678901234567890abcd
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Mon Aug 14 18:32:45 2026 -0700
+
+    feat: implement OAuth2 token refresh logic
+
+    Adds automatic token refresh when expiry is within 5 minutes.
+    Handles concurrent refresh requests with a mutex lock.
+    Closes #142
+
+commit b2c3d4e5f6789012345678901234567890abcde1
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Mon Aug 14 16:22:10 2026 -0700
+
+    fix: resolve race condition in WebSocket connection pool
+
+    The connection pool was not properly synchronizing access to the
+    available connections list, causing double-checkout under high load.
+    Added a ReentrantLock around checkout and return operations.
+
+commit c3d4e5f6789012345678901234567890abcde22
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Mon Aug 14 14:15:33 2026 -0700
+
+    refactor: extract rate limiter into separate module
+
+    Moves RateLimiter class from middleware.ts to its own module.
+    No behavior changes — pure refactor for testability.
+
+commit d4e5f6789012345678901234567890abcde333
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Mon Aug 14 11:45:22 2026 -0700
+
+    feat: add request tracing with OpenTelemetry
+
+    Integrates OpenTelemetry SDK for distributed tracing.
+    Adds spans for HTTP requests, database queries, and cache lookups.
+    Configuration via TRACE_ENABLED env var.
+
+commit e5f6789012345678901234567890abcde4444
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Mon Aug 14 09:30:15 2026 -0700
+
+    fix: handle malformed JWT tokens gracefully
+
+    Returns 401 instead of 500 when JWT is malformed.
+    Adds specific error message for each failure mode.
+
+commit f6789012345678901234567890abcde55555
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Fri Aug 13 17:22:08 2026 -0700
+
+    feat: add Redis cluster support for session store
+
+    Session store now supports Redis Cluster mode with automatic
+    node discovery and failover. Configuration via REDIS_CLUSTER_NODES.
+
+commit 6789012345678901234567890abcde666666
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Fri Aug 13 15:10:44 2026 -0700
+
+    perf: optimize database query for user lookup
+
+    Adds composite index on (email, tenant_id).
+    Rewrites N+1 query to use a single JOIN.
+    3x improvement on user search endpoint.
+
+commit 789012345678901234567890abcde7777777
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Fri Aug 13 12:55:30 2026 -0700
+
+    fix: correct CORS header for credentials mode
+
+    Access-Control-Allow-Credentials was not being set when
+    the origin matched the allowed list. Now explicitly set to true.
+
+commit 89012345678901234567890abcde88888888
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Fri Aug 13 10:40:12 2026 -0700
+
+    feat: add GraphQL subscription support
+
+    Implements WebSocket-based GraphQL subscriptions with
+    per-topic authorization. Integrates with existing pub/sub layer.
+
+commit 9012345678901234567890abcde999999999
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Fri Aug 13 08:25:55 2026 -0700
+
+    chore: upgrade dependencies to latest patch versions
+
+    Updates express, pg, ioredis, jsonwebtoken, and winston
+    to their latest patch releases. No breaking changes.
+
+commit 012345678901234567890123456789abcdeaaa
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Thu Aug 12 18:15:40 2026 -0700
+
+    feat: add health check endpoint with dependency status
+
+    /health now returns status of database, Redis, and external APIs.
+    Returns 503 if any critical dependency is down.
+
+commit 12345678901234567890123456789abcdebbbb
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Thu Aug 12 16:05:22 2026 -0700
+
+    fix: memory leak in event emitter cleanup
+
+    Event listeners were not being removed on connection close,
+    causing memory growth under sustained load. Added cleanup hook.
+
+commit 2345678901234567890123456789abcdecccc
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Thu Aug 12 13:50:10 2026 -0700
+
+    refactor: migrate from CommonJS to ESM
+
+    Converts all source files to ESM imports/exports.
+    Updates tsconfig and build configuration.
+    All tests passing.
+
+commit 345678901234567890123456789abcdeeeee
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Thu Aug 12 11:35:55 2026 -0700
+
+    feat: add request body size limiting middleware
+
+    Configurable max body size with 413 response on exceed.
+    Default limit: 1MB for API routes, 10MB for upload routes.
+
+commit 456789012345678901234567890abcdef0000
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Thu Aug 12 09:20:33 2026 -0700
+
+    fix: timezone handling in audit log timestamps
+
+    Audit logs were storing local time instead of UTC.
+    All timestamps now explicitly use toISOString().
+
+commit 567890123456789012345678901234abcdef11
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Wed Aug 11 17:10:20 2026 -0700
+
+    feat: add API versioning via URL prefix
+
+    Supports /v1/, /v2/ URL prefixes with route-level version mapping.
+    Default version: v2. Deprecation headers for v1.
+
+commit 67890123456789012345678901234abcdef222
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Wed Aug 11 15:00:05 2026 -0700
+
+    perf: cache compiled regex patterns
+
+    Regex patterns were being recompiled on every request.
+    Now cached in a module-level Map. 15% throughput improvement.
+
+commit 7890123456789012345678901234abcdef3333
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Wed Aug 11 12:45:50 2026 -0700
+
+    fix: handle empty array in batch delete endpoint
+
+    DELETE /api/users/batch with empty array was returning 500.
+    Now returns 400 with validation error message.
+
+commit 890123456789012345678901234abcdef44444
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Wed Aug 11 10:30:35 2026 -0700
+
+    feat: add structured logging with correlation IDs
+
+    Every request gets a UUID correlation ID propagated to all
+    log entries. Configurable via X-Correlation-ID header.
+
+commit 90123456789012345678901234abcdef55555
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Wed Aug 11 08:15:12 2026 -0700
+
+    chore: remove deprecated v0 API routes
+
+    Removes all /v0/ routes that were deprecated 6 months ago.
+    Updates API documentation accordingly.
+
+commit 0123456789012345678901234abcdef666666
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Tue Aug 10 18:05:55 2026 -0700
+
+    feat: add pagination metadata to list endpoints
+
+    All list endpoints now return X-Total-Count, X-Page, X-Per-Page
+    headers. Response body includes pagination object with next/prev URLs.
+
+commit 123456789012345678901234abcdef7777777
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Tue Aug 10 15:55:40 2026 -0700
+
+    fix: SSL certificate validation for external API calls
+
+    External API calls were skipping SSL verification in production.
+    Re-enabled with proper CA bundle path configuration.
+
+commit 234567890123456789012345abcdef8888888
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Tue Aug 10 13:40:22 2026 -0700
+
+    feat: add WebSocket ping/pong heartbeat
+
+    Sends ping every 30s, expects pong within 10s.
+    Closes connection on missed pong. Prevents stale connections.
+
+commit 345678901234567890123456abcdef9999999
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Tue Aug 10 11:25:08 2026 -0700
+
+    refactor: consolidate error handling middleware
+
+    Merges three separate error handlers into one unified handler.
+    Standardizes error response format across all routes.
+
+commit 456789012345678901234567890abcdefaaaaa
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Tue Aug 10 09:10:45 2026 -0700
+
+    feat: add IP allowlisting for admin endpoints
+
+    Admin endpoints now require IP to be in allowlist.
+    Configurable via ADMIN_IP_ALLOWLIST env var (comma-separated).
+
+commit 567890123456789012345678901234abbbbbb
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Mon Aug 9 17:00:30 2026 -0700
+
+    fix: duplicate session creation on concurrent login
+
+    Two concurrent login requests with same credentials were creating
+    duplicate sessions. Added database-level unique constraint.
+
+commit 67890123456789012345678901234abcccccc
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Mon Aug 9 14:50:15 2026 -0700
+
+    feat: add audit log export to CSV
+
+    Admin users can export audit logs as CSV.
+    Supports date range and action type filtering.
+
+commit 7890123456789012345678901234abddddddd
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Mon Aug 9 12:35:00 2026 -0700
+
+    perf: reduce JSON serialization overhead
+
+    Replaces JSON.stringify with fast-json-stringify for response
+    serialization. 40% improvement on large list endpoints.
+
+commit 890123456789012345678901234abeeeeeee
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Mon Aug 9 10:20:45 2026 -0700
+
+    fix: incorrect Content-Type for error responses
+
+    Error responses were returning text/html instead of application/json.
+    Fixed Content-Type header in error handler middleware.
+
+commit 90123456789012345678901234abfffffff
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Mon Aug 9 08:05:30 2026 -0700
+
+    feat: add request/response logging middleware
+
+    Logs method, path, status, duration, and correlation ID.
+    Configurable log level via REQUEST_LOG_LEVEL env var.
+
+commit 0123456789012345678901234567890abcd111
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Sun Aug 8 16:55:15 2026 -0700
+
+    fix: handle Redis connection timeout gracefully
+
+    Redis operations were hanging indefinitely on network issues.
+    Added 5s timeout with fallback to in-memory cache.
+
+commit 123456789012345678901234567890abcd222
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Sun Aug 8 14:40:00 2026 -0700
+
+    feat: add API rate limiting per user tier
+
+    Free: 100 req/hour, Pro: 1000 req/hour, Enterprise: unlimited.
+    Rate limit headers: X-RateLimit-Limit, X-RateLimit-Remaining.
+
+commit 23456789012345678901234567890abcd3333
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Sun Aug 8 12:25:45 2026 -0700
+
+    refactor: move test utilities to shared package
+
+    Extracts common test helpers (fixtures, mocks, assertions) into
+    @app/test-utils. Reduces test file boilerplate by 60%.
+
+commit 3456789012345678901234567890abcd4444
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Sun Aug 8 10:10:30 2026 -0700
+
+    fix: SQL injection vector in search endpoint
+
+    Search query was using string concatenation for LIKE pattern.
+    Replaced with parameterized query. Security issue reported by
+    external audit. CVE-2026-XXXX.
+
+commit 456789012345678901234567890abcd55555
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Sat Aug 7 18:00:15 2026 -0700
+
+    feat: add OpenAPI 3.1 spec generation
+
+    Auto-generates OpenAPI spec from route definitions and Zod schemas.
+    Served at /api-docs/openapi.json.
+
+commit 56789012345678901234567890abcd666666
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Sat Aug 7 15:50:00 2026 -0700
+
+    perf: lazy-load heavy modules on first use
+
+    GraphQL schema, OpenTelemetry SDK, and PDF generator are now
+    lazy-loaded. Reduces cold start time by 2.5s.
+
+commit 6789012345678901234567890abcd7777777
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Sat Aug 7 13:35:45 2026 -0700
+
+    fix: cookie domain mismatch in production
+
+    Session cookie was set with wrong domain after migration.
+    Now correctly uses env var SESSION_COOKIE_DOMAIN.
+
+commit 789012345678901234567890abcd8888888
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Sat Aug 7 11:20:30 2026 -0700
+
+    feat: add webhook delivery with retry
+
+    Outgoing webhooks now retry with exponential backoff (3 attempts).
+    Failed deliveries logged to webhook_failures table.
+
+commit 890123456789012345678901234abcd999999
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Sat Aug 7 09:05:15 2026 -0700
+
+    chore: update Node.js to 22.5
+
+    Updates CI to use Node 22.5. Updates package.json engines field.
+    Tests passing on new version.
+
+commit 90123456789012345678901234abcdaaaaaa
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Fri Aug 6 17:55:00 2026 -0700
+
+    fix: incorrect cache key for localized content
+
+    Cache key was not including locale, causing French content to
+    be served from English cache. Added locale to cache key.
+
+commit 01234567890123456789012345678abcdbbbb
+Author: Marcus Johnson <marcus.j@example.com>
+Date:   Fri Aug 6 15:40:45 2026 -0700
+
+    feat: add multi-tenant query isolation
+
+    All database queries now automatically filter by tenant_id.
+    Uses async context to propagate tenant from request.
+
+commit 1234567890123456789012345678abcdcccc
+Author: Sarah Chen <sarah.chen@example.com>
+Date:   Fri Aug 6 13:25:30 2026 -0700
+
+    refactor: replace express with fastify
+
+    Migrates HTTP server from express to fastify for performance.
+    2x throughput improvement on benchmarks. All routes migrated.
+
+commit 234567890123456789012345678abcdddddd
+Author: Alex Rivera <alex.rivera@example.com>
+Date:   Fri Aug 6 11:10:15 2026 -0700
+
+    fix: handle BigInt serialization in JSON responses
+
+    BigInt values were causing TypeError in JSON.stringify.
+    Added custom serializer for BigInt fields.

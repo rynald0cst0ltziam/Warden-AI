@@ -1,0 +1,163 @@
+2026-08-15T10:00:00.000Z INFO Starting API server on port 3000
+2026-08-15T10:00:00.050Z INFO Database connection established (postgres://db:5432/app)
+2026-08-15T10:00:00.120Z INFO Redis connection established (redis://cache:6379/0)
+2026-08-15T10:00:00.180Z INFO Loading route definitions...
+2026-08-15T10:00:00.250Z INFO Registered 47 routes
+2026-08-15T10:00:00.300Z INFO Middleware chain: cors, helmet, jsonParser, rateLimit, auth, router
+2026-08-15T10:00:00.350Z INFO OpenTelemetry tracing initialized
+2026-08-15T10:00:00.400Z INFO Health check endpoint ready at /health
+2026-08-15T10:00:00.450Z INFO API documentation at /api-docs
+2026-08-15T10:00:00.500Z INFO Server ready, accepting connections
+2026-08-15T10:00:01.000Z INFO GET /api/v2/users?page=1&limit=20 200 12ms
+2026-08-15T10:00:01.100Z INFO GET /api/v2/users/abc123 200 8ms
+2026-08-15T10:00:01.200Z INFO POST /api/v2/auth/login 200 45ms
+2026-08-15T10:00:01.300Z INFO GET /api/v2/users/abc123/sessions 200 15ms
+2026-08-15T10:00:01.400Z INFO GET /api/v2/users?page=2&limit=20 200 10ms
+2026-08-15T10:00:01.500Z INFO PUT /api/v2/users/abc123 200 35ms
+2026-08-15T10:00:01.600Z INFO GET /api/v2/users/abc123/audit-log 200 22ms
+2026-08-15T10:00:01.700Z INFO DELETE /api/v2/users/abc123/sessions/xyz789 204 18ms
+2026-08-15T10:00:01.800Z INFO GET /api/v2/health 200 3ms
+2026-08-15T10:00:01.900Z INFO GET /api/v2/users?page=3&limit=20 200 11ms
+2026-08-15T10:00:02.000Z INFO POST /api/v2/auth/refresh 200 28ms
+2026-08-15T10:00:02.100Z INFO GET /api/v2/users/def456 200 7ms
+2026-08-15T10:00:02.200Z INFO GET /api/v2/users/def456/sessions 200 14ms
+2026-08-15T10:00:02.300Z INFO PATCH /api/v2/users/def456 200 32ms
+2026-08-15T10:00:02.400Z INFO GET /api/v2/users?page=4&limit=20 200 9ms
+2026-08-15T10:00:02.500Z INFO GET /api/v2/users/ghi789 200 6ms
+2026-08-15T10:00:02.600Z INFO POST /api/v2/auth/login 200 42ms
+2026-08-15T10:00:02.700Z INFO GET /api/v2/users/ghi789/sessions 200 13ms
+2026-08-15T10:00:02.800Z INFO GET /api/v2/health 200 2ms
+2026-08-15T10:00:02.900Z INFO GET /api/v2/users?page=5&limit=20 200 10ms
+2026-08-15T10:00:03.000Z INFO PUT /api/v2/users/ghi789 200 30ms
+2026-08-15T10:00:03.100Z INFO GET /api/v2/users/ghi789/audit-log 200 20ms
+2026-08-15T10:00:03.200Z INFO DELETE /api/v2/users/ghi789/sessions/abc123 204 16ms
+2026-08-15T10:00:03.300Z INFO GET /api/v2/users?page=6&limit=20 200 11ms
+2026-08-15T10:00:03.400Z INFO POST /api/v2/auth/refresh 200 25ms
+2026-08-15T10:00:03.500Z INFO GET /api/v2/users/jkl012 200 8ms
+2026-08-15T10:00:03.600Z INFO GET /api/v2/users/jkl012/sessions 200 15ms
+2026-08-15T10:00:03.700Z INFO PATCH /api/v2/users/jkl012 200 33ms
+2026-08-15T10:00:03.800Z INFO GET /api/v2/users?page=7&limit=20 200 9ms
+2026-08-15T10:00:03.900Z INFO GET /api/v2/users/mno345 200 7ms
+2026-08-15T10:00:04.000Z INFO POST /api/v2/auth/login 200 38ms
+2026-08-15T10:00:04.100Z INFO GET /api/v2/users/mno345/sessions 200 12ms
+2026-08-15T10:00:04.200Z INFO GET /api/v2/health 200 3ms
+2026-08-15T10:00:04.300Z INFO GET /api/v2/users?page=8&limit=20 200 10ms
+2026-08-15T10:00:04.400Z INFO PUT /api/v2/users/mno345 200 31ms
+2026-08-15T10:00:04.500Z INFO GET /api/v2/users/mno345/audit-log 200 19ms
+2026-08-15T10:00:04.600Z INFO DELETE /api/v2/users/mno345/sessions/def456 204 17ms
+2026-08-15T10:00:04.700Z INFO GET /api/v2/users?page=9&limit=20 200 11ms
+2026-08-15T10:00:04.800Z INFO POST /api/v2/auth/refresh 200 27ms
+2026-08-15T10:00:04.900Z INFO GET /api/v2/users/pqr678 200 6ms
+2026-08-15T10:00:05.000Z INFO GET /api/v2/users/pqr678/sessions 200 14ms
+2026-08-15T10:00:05.100Z INFO PATCH /api/v2/users/pqr678 200 34ms
+2026-08-15T10:00:05.200Z INFO GET /api/v2/users?page=10&limit=20 200 9ms
+2026-08-15T10:00:05.300Z INFO GET /api/v2/users/stu901 200 8ms
+2026-08-15T10:00:05.400Z INFO POST /api/v2/auth/login 401 15ms
+2026-08-15T10:00:05.400Z WARN Authentication failed: invalid credentials for user stu901
+2026-08-15T10:00:05.500Z INFO GET /api/v2/users/stu901/sessions 200 13ms
+2026-08-15T10:00:05.600Z INFO GET /api/v2/health 200 2ms
+2026-08-15T10:00:05.700Z INFO GET /api/v2/users?page=11&limit=20 200 10ms
+2026-08-15T10:00:05.800Z INFO PUT /api/v2/users/stu901 200 29ms
+2026-08-15T10:00:05.900Z INFO GET /api/v2/users/stu901/audit-log 200 21ms
+2026-08-15T10:00:06.000Z INFO DELETE /api/v2/users/stu901/sessions/ghi789 204 18ms
+2026-08-15T10:00:06.100Z INFO GET /api/v2/users?page=12&limit=20 200 11ms
+2026-08-15T10:00:06.200Z INFO POST /api/v2/auth/refresh 200 26ms
+2026-08-15T10:00:06.300Z INFO GET /api/v2/users/vwx234 200 7ms
+2026-08-15T10:00:06.400Z INFO GET /api/v2/users/vwx234/sessions 200 16ms
+2026-08-15T10:00:06.500Z INFO PATCH /api/v2/users/vwx234 200 35ms
+2026-08-15T10:00:06.600Z INFO GET /api/v2/users?page=13&limit=20 200 9ms
+2026-08-15T10:00:06.700Z INFO GET /api/v2/users/yza567 200 6ms
+2026-08-15T10:00:06.800Z INFO POST /api/v2/auth/login 200 44ms
+2026-08-15T10:00:06.900Z INFO GET /api/v2/users/yza567/sessions 200 12ms
+2026-08-15T10:00:07.000Z INFO GET /api/v2/health 200 3ms
+2026-08-15T10:00:07.100Z INFO GET /api/v2/users?page=14&limit=20 200 10ms
+2026-08-15T10:00:07.200Z INFO PUT /api/v2/users/yza567 200 31ms
+2026-08-15T10:00:07.300Z INFO GET /api/v2/users/yza567/audit-log 200 20ms
+2026-08-15T10:00:07.400Z INFO DELETE /api/v2/users/yza567/sessions/jkl012 204 16ms
+2026-08-15T10:00:07.500Z INFO GET /api/v2/users?page=15&limit=20 200 11ms
+2026-08-15T10:00:07.600Z INFO POST /api/v2/auth/refresh 200 24ms
+2026-08-15T10:00:07.700Z INFO GET /api/v2/users/bcd890 200 8ms
+2026-08-15T10:00:07.800Z INFO GET /api/v2/users/bcd890/sessions 200 14ms
+2026-08-15T10:00:07.900Z INFO PATCH /api/v2/users/bcd890 200 33ms
+2026-08-15T10:00:08.000Z INFO GET /api/v2/users?page=16&limit=20 200 9ms
+2026-08-15T10:00:08.100Z INFO GET /api/v2/users/efg123 200 7ms
+2026-08-15T10:00:08.200Z INFO POST /api/v2/auth/login 200 41ms
+2026-08-15T10:00:08.300Z INFO GET /api/v2/users/efg123/sessions 200 13ms
+2026-08-15T10:00:08.400Z INFO GET /api/v2/health 200 2ms
+2026-08-15T10:00:08.500Z INFO GET /api/v2/users?page=17&limit=20 200 10ms
+2026-08-15T10:00:08.600Z INFO PUT /api/v2/users/efg123 200 30ms
+2026-08-15T10:00:08.700Z INFO GET /api/v2/users/efg123/audit-log 200 22ms
+2026-08-15T10:00:08.800Z INFO DELETE /api/v2/users/efg123/sessions/mno345 204 17ms
+2026-08-15T10:00:08.900Z INFO GET /api/v2/users?page=18&limit=20 200 11ms
+2026-08-15T10:00:09.000Z INFO POST /api/v2/auth/refresh 200 28ms
+2026-08-15T10:00:09.100Z INFO GET /api/v2/users/hij456 200 6ms
+2026-08-15T10:00:09.200Z INFO GET /api/v2/users/hij456/sessions 200 15ms
+2026-08-15T10:00:09.300Z INFO PATCH /api/v2/users/hij456 200 32ms
+2026-08-15T10:00:09.400Z INFO GET /api/v2/users?page=19&limit=20 200 9ms
+2026-08-15T10:00:09.500Z INFO GET /api/v2/users/klm789 200 8ms
+2026-08-15T10:00:09.600Z INFO POST /api/v2/auth/login 200 43ms
+2026-08-15T10:00:09.700Z INFO GET /api/v2/users/klm789/sessions 200 12ms
+2026-08-15T10:00:09.800Z INFO GET /api/v2/health 200 3ms
+2026-08-15T10:00:09.900Z INFO GET /api/v2/users?page=20&limit=20 200 10ms
+2026-08-15T10:00:10.000Z INFO PUT /api/v2/users/klm789 200 31ms
+2026-08-15T10:00:10.100Z INFO GET /api/v2/users/klm789/audit-log 200 19ms
+2026-08-15T10:00:10.200Z INFO DELETE /api/v2/users/klm789/sessions/pqr678 204 18ms
+2026-08-15T10:00:10.300Z INFO GET /api/v2/users?page=21&limit=20 200 11ms
+2026-08-15T10:00:10.400Z INFO POST /api/v2/auth/refresh 200 25ms
+2026-08-15T10:00:10.500Z INFO GET /api/v2/users/nop012 200 7ms
+2026-08-15T10:00:10.600Z INFO GET /api/v2/users/nop012/sessions 200 14ms
+2026-08-15T10:00:10.700Z INFO PATCH /api/v2/users/nop012 200 34ms
+2026-08-15T10:00:10.800Z INFO GET /api/v2/users?page=22&limit=20 200 9ms
+2026-08-15T10:00:10.900Z INFO GET /api/v2/users/qrs345 200 6ms
+2026-08-15T10:00:11.000Z INFO POST /api/v2/auth/login 401 14ms
+2026-08-15T10:00:11.000Z WARN Authentication failed: invalid credentials for user qrs345
+2026-08-15T10:00:11.100Z INFO GET /api/v2/users/qrs345/sessions 200 13ms
+2026-08-15T10:00:11.200Z INFO GET /api/v2/health 200 2ms
+2026-08-15T10:00:11.300Z INFO GET /api/v2/users?page=23&limit=20 200 10ms
+2026-08-15T10:00:11.400Z INFO PUT /api/v2/users/qrs345 200 29ms
+2026-08-15T10:00:11.500Z INFO GET /api/v2/users/qrs345/audit-log 200 21ms
+2026-08-15T10:00:11.600Z INFO DELETE /api/v2/users/qrs345/sessions/stu678 204 16ms
+2026-08-15T10:00:11.700Z INFO GET /api/v2/users?page=24&limit=20 200 11ms
+2026-08-15T10:00:11.800Z INFO POST /api/v2/auth/refresh 200 27ms
+2026-08-15T10:00:11.900Z INFO GET /api/v2/users/tuv901 200 8ms
+2026-08-15T10:00:12.000Z INFO GET /api/v2/users/tuv901/sessions 200 15ms
+2026-08-15T10:00:12.100Z INFO PATCH /api/v2/users/tuv901 200 33ms
+2026-08-15T10:00:12.200Z INFO GET /api/v2/users?page=25&limit=20 200 9ms
+2026-08-15T10:00:12.300Z INFO GET /api/v2/users/wxy234 200 7ms
+2026-08-15T10:00:12.400Z INFO POST /api/v2/auth/login 200 42ms
+2026-08-15T10:00:12.500Z INFO GET /api/v2/users/wxy234/sessions 200 12ms
+2026-08-15T10:00:12.600Z INFO GET /api/v2/health 200 3ms
+2026-08-15T10:00:12.700Z INFO GET /api/v2/users?page=26&limit=20 200 10ms
+2026-08-15T10:00:12.800Z INFO PUT /api/v2/users/wxy234 200 31ms
+2026-08-15T10:00:12.900Z INFO GET /api/v2/users/wxy234/audit-log 200 20ms
+2026-08-15T10:00:13.000Z INFO DELETE /api/v2/users/wxy234/sessions/yza567 204 17ms
+2026-08-15T10:00:13.100Z INFO GET /api/v2/users?page=27&limit=20 200 11ms
+2026-08-15T10:00:13.200Z INFO POST /api/v2/auth/refresh 200 26ms
+2026-08-15T10:00:13.300Z INFO GET /api/v2/users/abc123 200 8ms
+2026-08-15T10:00:13.400Z INFO GET /api/v2/users/abc123/sessions 200 14ms
+2026-08-15T10:00:13.500Z INFO PATCH /api/v2/users/abc123 200 32ms
+2026-08-15T10:00:13.600Z INFO GET /api/v2/users?page=28&limit=20 200 9ms
+2026-08-15T10:00:13.700Z INFO GET /api/v2/users/def456 200 6ms
+2026-08-15T10:00:13.800Z INFO POST /api/v2/auth/login 200 40ms
+2026-08-15T10:00:13.900Z INFO GET /api/v2/users/def456/sessions 200 13ms
+2026-08-15T10:00:14.000Z INFO GET /api/v2/health 200 2ms
+2026-08-15T10:00:14.100Z INFO GET /api/v2/users?page=29&limit=20 200 10ms
+2026-08-15T10:00:14.200Z INFO PUT /api/v2/users/def456 200 30ms
+2026-08-15T10:00:14.300Z INFO GET /api/v2/users/def456/audit-log 200 22ms
+2026-08-15T10:00:14.400Z ERROR Unhandled error in request handler: DatabaseConnectionError
+2026-08-15T10:00:14.400Z ERROR Connection terminated unexpectedly
+2026-08-15T10:00:14.400Z ERROR     at PoolConnection.checkTimeout (/app/node_modules/pg/lib/pool.js:123:15)
+2026-08-15T10:00:14.400Z ERROR     at PoolConnection.emit (node:events:514:28)
+2026-08-15T10:00:14.400Z ERROR     at /app/node_modules/pg/lib/client.js:45:12
+2026-08-15T10:00:14.400Z ERROR     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-08-15T10:00:14.500Z INFO Retrying database connection (attempt 1/3)
+2026-08-15T10:00:14.600Z INFO Database reconnection attempt failed (attempt 1/3)
+2026-08-15T10:00:14.700Z INFO Retrying database connection (attempt 2/3)
+2026-08-15T10:00:14.800Z INFO Database reconnection attempt failed (attempt 2/3)
+2026-08-15T10:00:14.900Z INFO Retrying database connection (attempt 3/3)
+2026-08-15T10:00:15.000Z ERROR Database connection failed after 3 attempts
+2026-08-15T10:00:15.000Z ERROR Shutting down server due to critical database error
+2026-08-15T10:00:15.050Z INFO Closing HTTP server (waiting for active connections)
+2026-08-15T10:00:15.100Z INFO Closing Redis connection
+2026-08-15T10:00:15.150Z INFO Closing OpenTelemetry SDK
+2026-08-15T10:00:15.200Z INFO Server shutdown complete

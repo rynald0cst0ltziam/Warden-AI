@@ -1,60 +1,69 @@
 {
-  "generatedAt": "2026-08-15T15:51:59.380Z",
+  "generatedAt": "2026-08-15T17:53:11.820Z",
   "wardenVersion": "1.0.0",
-  "totalTasks": 25,
+  "totalTasks": 30,
   "guardAllPassed": true,
   "overall": {
-    "rawTokens": 197399,
-    "prunedTokens": 56524,
-    "tokensSaved": 140875,
-    "reductionPct": 71.4,
-    "totalOverheadMs": 588
+    "rawTokens": 214580,
+    "prunedTokens": 59449,
+    "tokensSaved": 155131,
+    "reductionPct": 72.3,
+    "totalOverheadMs": 254
   },
   "byCategory": [
     {
       "category": "grep",
       "tasks": 5,
-      "raw": 55550,
+      "raw": 55655,
       "pruned": 6944,
-      "saved": 48606,
+      "saved": 48711,
       "reductionPct": 87.5,
-      "avgOverheadMs": 44
+      "avgOverheadMs": 17
     },
     {
       "category": "testlog",
       "tasks": 5,
-      "raw": 17025,
+      "raw": 17080,
       "pruned": 7037,
-      "saved": 9988,
-      "reductionPct": 58.7,
-      "avgOverheadMs": 8
+      "saved": 10043,
+      "reductionPct": 58.8,
+      "avgOverheadMs": 4
     },
     {
       "category": "fileread",
       "tasks": 5,
-      "raw": 45155,
+      "raw": 45360,
       "pruned": 9814,
-      "saved": 35341,
-      "reductionPct": 78.3,
-      "avgOverheadMs": 4
+      "saved": 35546,
+      "reductionPct": 78.4,
+      "avgOverheadMs": 6
     },
     {
       "category": "generic",
       "tasks": 5,
-      "raw": 38061,
-      "pruned": 5400,
-      "saved": 32661,
-      "reductionPct": 85.8,
-      "avgOverheadMs": 14
+      "raw": 38166,
+      "pruned": 3495,
+      "saved": 34671,
+      "reductionPct": 90.8,
+      "avgOverheadMs": 9
+    },
+    {
+      "category": "shell-output",
+      "tasks": 5,
+      "raw": 16556,
+      "pruned": 4226,
+      "saved": 12330,
+      "reductionPct": 74.5,
+      "avgOverheadMs": 4
     },
     {
       "category": "compress",
       "tasks": 5,
-      "raw": 41608,
-      "pruned": 27329,
-      "saved": 14279,
-      "reductionPct": 34.3,
-      "avgOverheadMs": 48
+      "raw": 41763,
+      "pruned": 27933,
+      "saved": 13830,
+      "reductionPct": 33.1,
+      "avgOverheadMs": 11
     }
   ]
 }

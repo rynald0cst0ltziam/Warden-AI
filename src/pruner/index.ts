@@ -20,6 +20,7 @@ import { grepModule } from "./modules/grep.js";
 import { fileReadModule } from "./modules/fileread.js";
 import { testLogModule } from "./modules/testlog.js";
 import { genericModule } from "./modules/generic.js";
+import { shellOutputModule } from "./modules/shell-output.js";
 import { preprocessOutput } from "./preprocess.js";
 import { routeContent } from "./router.js";
 import type { TaskContext } from "../classifier/types.js";
@@ -31,6 +32,7 @@ const MODULES: Record<ToolType, PruneModule> = {
   search: grepModule, // search reuses grep logic
   "file-read": fileReadModule,
   "test-log": testLogModule,
+  "shell-output": shellOutputModule,
   "web-fetch": genericModule, // until a dedicated module exists
   json: genericModule,
   generic: genericModule,
@@ -65,6 +67,10 @@ export class PruningEngine {
       fileReadLargeThresholdLines: this.config.fileReadLargeThresholdLines,
       grepMaxMatches: this.config.grepMaxMatches,
       testLogFailureContextLines: this.config.testLogFailureContextLines,
+      shellTailLines: this.config.shellTailLines,
+      shellGitLogMaxCommits: this.config.shellGitLogMaxCommits,
+      shellFindMaxResults: this.config.shellFindMaxResults,
+      shellPsMaxProcesses: this.config.shellPsMaxProcesses,
     };
   }
 
@@ -187,6 +193,7 @@ export {
   fileReadModule,
   testLogModule,
   genericModule,
+  shellOutputModule,
 } from "./modules/index.js";
 export type {
   PruneInput,

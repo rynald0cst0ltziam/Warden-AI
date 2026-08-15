@@ -36,7 +36,7 @@ interface BenchTask {
   type: string;
   fixtureFile: string;
   taskHint: string;
-  category: "grep" | "fileread" | "testlog" | "generic" | "compress";
+  category: "grep" | "fileread" | "testlog" | "generic" | "compress" | "shell-output";
 }
 
 interface TaskResult {
@@ -223,6 +223,48 @@ const TASKS: BenchTask[] = [
     category: "generic",
   },
 
+  // Shell output tasks (5) — tests the shell-output pruning module
+  {
+    id: "shell-001",
+    name: "shell: git log (50 commits)",
+    type: "shell-output",
+    fixtureFile: "shell-git-log.txt",
+    taskHint: "review recent commit history for auth changes",
+    category: "shell-output",
+  },
+  {
+    id: "shell-002",
+    name: "shell: docker logs (server crash)",
+    type: "shell-output",
+    fixtureFile: "shell-docker-logs.txt",
+    taskHint: "find the cause of the server crash",
+    category: "shell-output",
+  },
+  {
+    id: "shell-003",
+    name: "shell: npm install (487 packages)",
+    type: "shell-output",
+    fixtureFile: "shell-npm-install.txt",
+    taskHint: "check for vulnerabilities and deprecated packages",
+    category: "shell-output",
+  },
+  {
+    id: "shell-004",
+    name: "shell: cargo build (150 crates)",
+    type: "shell-output",
+    fixtureFile: "shell-cargo-build.txt",
+    taskHint: "check for compilation warnings and errors",
+    category: "shell-output",
+  },
+  {
+    id: "shell-005",
+    name: "shell: find (147 files)",
+    type: "shell-output",
+    fixtureFile: "shell-find.txt",
+    taskHint: "find all test files in the project",
+    category: "shell-output",
+  },
+
   // File compression tasks (5) — uses compressFile, not pruning engine
   {
     id: "comp-001",
@@ -336,7 +378,7 @@ function runCompressTask(
 
 async function main() {
   console.log("");
-  console.log("  Warden Benchmark Suite — 25 tasks, measured not estimated");
+  console.log("  Warden Benchmark Suite — 30 tasks, measured not estimated");
   console.log("  ──────────────────────────────────────────────────────────────");
   console.log("");
 

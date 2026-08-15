@@ -54,6 +54,14 @@ export interface WardenConfig {
   grepMaxMatches: number;
   /** Lines of context to keep around a test/log failure. */
   testLogFailureContextLines: number;
+  /** Shell output: max lines to keep for tail-heavy outputs (docker logs, kubectl logs). */
+  shellTailLines: number;
+  /** Shell output: max commits to keep for git log before collapsing. */
+  shellGitLogMaxCommits: number;
+  /** Shell output: max results for find/tree before collapsing. */
+  shellFindMaxResults: number;
+  /** Shell output: max processes for ps aux before collapsing. */
+  shellPsMaxProcesses: number;
   /** Risk tolerance preset. */
   riskTolerance: "startup" | "balanced" | "enterprise";
 }
@@ -67,6 +75,10 @@ export const DEFAULT_CONFIG: WardenConfig = {
   fileReadLargeThresholdLines: 400,
   grepMaxMatches: 40,
   testLogFailureContextLines: 8,
+  shellTailLines: 50,
+  shellGitLogMaxCommits: 15,
+  shellFindMaxResults: 30,
+  shellPsMaxProcesses: 15,
   riskTolerance: "balanced",
 };
 

@@ -199,15 +199,227 @@ const FILERead_DETECTORS: Detector[] = [
   },
 ];
 
+// High-confidence shell-output detectors — patterns that are unambiguously
+// shell command output (git, docker, npm, cargo, make, mvn, pip, gradle, tsc).
+// These are checked BEFORE grep/testlog/file-read because they can't be
+// confused with source code or test logs.
+const SHELL_OUTPUT_DETECTORS_HIGH: Detector[] = [
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // git log: multiple "commit <hash>" lines
+      let commits = 0;
+      for (const l of lines.slice(0, 50)) {
+        if (/^commit [0-9a-f]{7,40}/.test(l)) commits++;
+      }
+      return commits >= 2;
+    },
+    reason: "git log output (multiple commit headers detected)",
+    confidence: 0.9,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // git diff: diff --git, +++, ---, @@ patterns
+      let diffLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^(diff --git|index |---|\+\+\+|@@)/.test(l)) diffLines++;
+      }
+      return diffLines >= 3;
+    },
+    reason: "git diff output (diff headers detected)",
+    confidence: 0.9,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // docker/kubectl logs: timestamped log lines
+      let tsLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(l)) tsLines++;
+      }
+      return tsLines >= 5;
+    },
+    reason: "timestamped log output (docker/kubectl logs)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // npm install: added/removed/audited patterns OR +-- package lines
+      let npmLines = 0;
+      for (const l of lines.slice(0, 50)) {
+        if (/^(added|removed|changed|npm warn|npm error|up to date|audited)/.test(l)) npmLines++;
+        else if (/^\+--\s|^\+ \S+@/.test(l)) npmLines++;
+      }
+      return npmLines >= 3;
+    },
+    reason: "npm install output (package manager summary lines detected)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // cargo build: Compiling/Finished/warning/error patterns
+      let cargoLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^(Compiling|Finished|warning:|error\[|error:)/.test(l)) cargoLines++;
+      }
+      return cargoLines >= 3;
+    },
+    reason: "cargo build output (Rust compiler patterns detected)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // docker build: Step X/Y patterns
+      let stepLines = 0;
+      for (const l of lines.slice(0, 50)) {
+        if (/^Step \d+\/\d+\s*:/.test(l)) stepLines++;
+      }
+      return stepLines >= 3;
+    },
+    reason: "docker build output (step markers detected)",
+    confidence: 0.9,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // ps aux: USER PID %CPU header
+      return /^USER\s+PID\s+%CPU\s+%MEM/.test(lines[0] ?? "") ||
+             /^USER\s+PID\s+%CPU\s+%MEM/.test(lines[1] ?? "");
+    },
+    reason: "ps aux output (process list header detected)",
+    confidence: 0.95,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // make output: make[/gcc/cc patterns
+      let makeLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^(make\[|make:|gcc|g\+\+|cc |cc1|ld )/.test(l)) makeLines++;
+      }
+      return makeLines >= 3;
+    },
+    reason: "make output (compiler/linker patterns detected)",
+    confidence: 0.8,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // maven output: [INFO]/[ERROR] patterns
+      let mvnLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^\[(INFO|ERROR|WARN)\]/.test(l)) mvnLines++;
+      }
+      return mvnLines >= 5;
+    },
+    reason: "maven output ([INFO]/[ERROR] markers detected)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // pip install: Collecting/Downloading/Installing patterns
+      let pipLines = 0;
+      for (const l of lines.slice(0, 20)) {
+        if (/^(Collecting|Downloading|Installing|Successfully installed)/.test(l)) pipLines++;
+      }
+      return pipLines >= 3;
+    },
+    reason: "pip install output (Python package manager patterns detected)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // gradle output: > Task / BUILD SUCCESSFUL patterns
+      let gradleLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^(> Task|> Configure|BUILD SUCCESSFUL|BUILD FAILED)/.test(l)) gradleLines++;
+      }
+      return gradleLines >= 3;
+    },
+    reason: "gradle output (task/build markers detected)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // tsc output: error TS#### / warning TS#### patterns (may be at start
+      // or after a file:line:col prefix)
+      let tscLines = 0;
+      for (const l of lines.slice(0, 50)) {
+        if (/(error TS\d+|warning TS\d+)/.test(l)) tscLines++;
+      }
+      return tscLines >= 3;
+    },
+    reason: "tsc output (TypeScript compiler errors/warnings detected)",
+    confidence: 0.9,
+  },
+];
+
+// Low-confidence shell-output detectors — patterns that could overlap with
+// test logs (go test has PASS/FAIL like vitest) or source code (find output
+// has path-like lines like file-read). These are checked AFTER grep/testlog/
+// file-read so the more specific detectors win.
+const SHELL_OUTPUT_DETECTORS_LOW: Detector[] = [
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // go test: === RUN / --- PASS: / --- FAIL: patterns (Go-specific)
+      let goTestLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^(=== RUN|=== PAUSE|=== CONT|--- FAIL:|--- PASS:)/.test(l)) goTestLines++;
+      }
+      return goTestLines >= 3;
+    },
+    reason: "go test output (Go test markers detected)",
+    confidence: 0.85,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // find output: many absolute/relative path lines (no spaces, no code)
+      let pathLines = 0;
+      for (const l of lines.slice(0, 50)) {
+        if (/^[/~.]/.test(l) && l.trim().length > 0 && !l.startsWith("find:") && !/\s{2,}/.test(l) && !/[{};()]/.test(l)) pathLines++;
+      }
+      return pathLines >= 10;
+    },
+    reason: "find output (many path lines detected)",
+    confidence: 0.75,
+  },
+  {
+    toolType: "shell-output",
+    test: (_raw, lines) => {
+      // tree output: branch characters + "N directories, N files"
+      let treeLines = 0;
+      for (const l of lines.slice(0, 30)) {
+        if (/^[│├└─\s]+/.test(l) || /^\d+ directories, \d+ files/.test(l)) treeLines++;
+      }
+      return treeLines >= 5;
+    },
+    reason: "tree output (branch characters detected)",
+    confidence: 0.8,
+  },
+];
+
 // Order matters: most specific first. JSON is checked first because valid JSON
-// is unambiguous. Then grep (path:line pattern is very specific). Then test
-// logs (test markers are distinctive). Then file-read (code patterns). Generic
-// is the fallback.
+// is unambiguous. Then high-confidence shell-output detectors (git, docker, npm,
+// cargo, etc. — can't be confused with code or test logs). Then grep (path:line
+// pattern). Then test logs (test markers). Then file-read (code patterns).
+// Then low-confidence shell-output detectors (go test, find, tree — patterns
+// that overlap with test logs and source code). Generic is the fallback.
 const ALL_DETECTORS = [
   ...JSON_DETECTORS,
+  ...SHELL_OUTPUT_DETECTORS_HIGH,
   ...GREP_DETECTORS,
   ...TESTLOG_DETECTORS,
   ...FILERead_DETECTORS,
+  ...SHELL_OUTPUT_DETECTORS_LOW,
 ];
 
 /**

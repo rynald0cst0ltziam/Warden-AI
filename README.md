@@ -23,7 +23,7 @@ Warden is an MCP server that drops into Claude Code, Cursor, Codex, Windsurf, Cl
 
 **50-90% fewer tokens. Zero config. Zero cloud. Zero lock-in.**
 
-> **Benchmarked.** 25-task suite. 71.4% overall reduction. 100% guard pass rate. 24ms avg overhead. [See the numbers →](benchmarks/README.md)
+> **Benchmarked.** 30-task suite. 72.3% overall reduction. 100% guard pass rate. 8ms avg overhead. [See the numbers →](benchmarks/README.md)
 
 ## Install
 
@@ -120,7 +120,7 @@ Every line in the pruned output exists verbatim in the raw — verified by the t
 
 ## Benchmarks
 
-25 tasks. Measured, not estimated. One command to reproduce:
+30 tasks. Measured, not estimated. One command to reproduce:
 
 ```bash
 npx tsx benchmarks/run-bench.ts
@@ -128,15 +128,17 @@ npx tsx benchmarks/run-bench.ts
 
 | Category | Tasks | Raw tokens | Pruned tokens | Reduction | Avg overhead |
 |:---------|------:|-----------:|--------------:|----------:|-------------:|
-| **grep** | 5 | 55,550 | 6,944 | **87.5%** | 44ms |
-| **file read** | 5 | 45,155 | 9,814 | **78.3%** | 4ms |
-| **generic** (auto-routed) | 5 | 38,061 | 5,400 | **85.8%** | 14ms |
-| **file compression** | 5 | 41,608 | 27,329 | **34.3%** | 48ms |
-| **test log** | 5 | 17,025 | 7,037 | **58.7%** | 8ms |
-| **OVERALL** | **25** | **197,399** | **56,524** | **71.4%** | **24ms** |
+| **grep** | 5 | 55,655 | 6,944 | **87.5%** | 17ms |
+| **file read** | 5 | 45,360 | 9,814 | **78.4%** | 6ms |
+| **generic** (auto-routed) | 5 | 38,166 | 3,495 | **90.8%** | 9ms |
+| **shell output** | 5 | 16,556 | 4,226 | **74.5%** | 4ms |
+| **file compression** | 5 | 41,763 | 27,933 | **33.1%** | 11ms |
+| **test log** | 5 | 17,080 | 7,037 | **58.8%** | 4ms |
+| **OVERALL** | **30** | **214,580** | **59,449** | **72.3%** | **8ms** |
 
 - **100% trust guard pass rate** — every pruned line verified verbatim against raw
-- **24ms average overhead** — negligible vs agent API latency (1-10s)
+- **8ms average overhead** — negligible vs agent API latency (1-10s)
+- **Shell-output pruning**: 24 command pattern detectors (git log/diff/status, npm install/ls/build, docker logs/build/ps, cargo build, kubectl logs/get, ps aux, find, tree, make, go test/build, pip install, mvn, gradle, rustc, tsc) — 74.5% avg reduction
 - **Raw data**: CSV + JSON in `benchmarks/results/`
 - **Honest numbers**: [HONEST-NUMBERS.md](benchmarks/HONEST-NUMBERS.md) — what these numbers mean and what they don't
 - **Methodology**: [benchmarks/README.md](benchmarks/README.md) — fixtures, task selection, reproduction
@@ -365,7 +367,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (313 tests, 29 files) |
+| Tests | Vitest (370 tests, 30 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |
