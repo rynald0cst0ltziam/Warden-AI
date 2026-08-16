@@ -135,7 +135,8 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
           .prepare("SELECT COUNT(*) AS n FROM index_files WHERE project = ?")
           .get(repoRoot) as { n: number } | undefined;
         return (row?.n ?? 0) > 0;
-      } catch {
+      } catch (err) {
+        logger.debug("code index check failed", { error: String(err), repoRoot });
         return false;
       }
     },

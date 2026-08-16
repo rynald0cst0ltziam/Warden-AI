@@ -180,7 +180,7 @@ export async function runWatchdog(
     trackerStats.samples >= MIN_TASK_SAMPLES_FOR_REGRESSION &&
     trackerStats.regressionSignal < -0.02
   ) {
-    // Possible regression but not severe enough to auto-revert — alert
+    // Possible regression (signal < -2%) but not severe enough to auto-revert (< -5%) — alert
     alerted = true;
     logger.warn("watchdog detected possible task outcome regression", {
       prunedSuccessRate: trackerStats.prunedSuccessRate,

@@ -38,7 +38,8 @@ function createCodeIndexAdapter(
           .prepare("SELECT COUNT(*) AS n FROM index_files WHERE project = ?")
           .get(root) as { n: number } | undefined;
         return (row?.n ?? 0) > 0;
-      } catch {
+      } catch (err) {
+        logger.debug("code index check failed", { error: String(err), root });
         return false;
       }
     },
