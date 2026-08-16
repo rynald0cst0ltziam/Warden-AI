@@ -40,6 +40,10 @@ export {
   type License,
 } from "./license/index.js";
 export { createMcpServer, runMcpServer } from "./server/mcp.js";
+export { runProxy, compressProxyDescription, transformResponse } from "./proxy/index.js";
+export type { ProxyResult } from "./proxy/index.js";
+export { createLineBuffer, type ParsedMessage } from "./proxy/line-buffer.js";
+export { getSpawnInvocation, getSpawnOptions, type SpawnInvocation } from "./proxy/spawn.js";
 export { runCli } from "./cli/index.js";
 export { Warden } from "./warden.js";
 export type { PruneCallInput, PruneCallResult } from "./warden.js";

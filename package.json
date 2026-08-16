@@ -1,7 +1,7 @@
 {
   "name": "warden-ai",
-  "version": "0.4.2",
-  "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse. 72.3% average token reduction, 100% trust guard pass rate, 5ms overhead. 30-task benchmark suite, shell-output pruning (24 command patterns), AST-aware read modes (outline, signatures, symbol, imports).",
+  "version": "0.5.0",
+  "description": "The structurally-verified context layer for AI coding agents. Warden sits between your coding agent and its tools, prunes tool output to what the current task needs, and verifies — with real evals — that nothing got worse. 72.3% average token reduction, 100% trust guard pass rate, 5ms overhead. 30-task benchmark suite, shell-output pruning (24 command patterns), AST-aware read modes (outline, signatures, symbol, imports), MCP proxy mode (compress any MCP server's tool descriptions).",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "author": "Rynaldo Stoltz",

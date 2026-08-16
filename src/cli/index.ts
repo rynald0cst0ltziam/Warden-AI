@@ -17,6 +17,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { Warden } from "../warden.js";
 import { runMcpServer } from "../server/mcp.js";
+import { runProxy } from "../proxy/index.js";
 import { registerEverywhere } from "./register.js";
 import { renderHud, renderLive } from "./hud.js";
 import { PKG_VERSION } from "../config/index.js";
@@ -263,6 +264,32 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     )
     .action(async () => {
       await runMcpServer();
+    });
+
+  program
+    .command("proxy", { isDefault: false })
+    .description(
+      "MCP proxy middleware. Wraps an upstream MCP server and compresses tool descriptions to save context tokens. Usage: warden proxy <command> [...args]",
+    )
+    .argument("<command>", "Upstream MCP server command (e.g. npx, node)")
+    .argument("[args...]", "Arguments for the upstream command")
+    .option("--fields <fields>", "Comma-separated field names to compress (default: description)")
+    .option("--level <level>", "Compression level: lite, full, ultra (default: full)")
+    .option("--debug", "Log compression deltas to stderr")
+    .option("--compress-outputs", "Also compress tools/call responses (experimental)")
+    .action(async (command: string, args: string[], opts: {
+      fields?: string;
+      level?: string;
+      debug?: boolean;
+      compressOutputs?: boolean;
+    }) => {
+      const fields = opts.fields?.split(",").map((s) => s.trim()).filter(Boolean);
+      await runProxy(command, args, {
+        fields,
+        level: opts.level as "lite" | "full" | "ultra" | undefined,
+        debug: opts.debug,
+        compressOutputs: opts.compressOutputs,
+      });
     });
 
   program

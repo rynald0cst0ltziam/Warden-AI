@@ -148,6 +148,38 @@ Powered by the tree-sitter code index. Every line in the output is verbatim from
 
 <br>
 
+## MCP proxy mode
+
+Warden can wrap any upstream MCP server and compress its tool descriptions:
+
+```jsonc
+{
+  "mcpServers": {
+    "fs-shrunk": {
+      "command": "warden",
+      "args": ["proxy", "npx", "@modelcontextprotocol/server-filesystem", "/path"]
+    }
+  }
+}
+```
+
+The proxy spawns the upstream server, intercepts `tools/list` / `prompts/list` / `resources/list` responses, and compresses `description` fields using Warden's compression engine. Technical identifiers (code, paths, URLs, version numbers) are preserved. All other messages pass through unchanged.
+
+```bash
+# Wrap any MCP server
+warden proxy npx @modelcontextprotocol/server-filesystem /tmp
+
+# Custom fields + debug logging
+warden proxy npx @modelcontextprotocol/server-github --fields description,summary --debug
+
+# Compression level
+warden proxy npx some-mcp-server --level ultra
+```
+
+Works with any MCP client (Claude Code, Cursor, Windsurf, Codex, Gemini). Stdio-based — no HTTP server needed.
+
+<br>
+
 ## Benchmarks
 
 30 tasks. Measured, not estimated. One command to reproduce:
@@ -397,7 +429,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (412 tests, 32 files) |
+| Tests | Vitest (452 tests, 33 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |
