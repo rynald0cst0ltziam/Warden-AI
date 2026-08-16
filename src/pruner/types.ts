@@ -51,6 +51,18 @@ export interface PruneOptions {
   filePath?: string;
   /** Repo root (needed to resolve relative paths for code index lookups). */
   repoRoot?: string;
+  /**
+   * Read mode for file-read pruning. Controls how the file is presented:
+   * - "auto" (default): current behavior — slice + outline for large files
+   * - "full": return raw content unchanged (no pruning)
+   * - "outline": only structural header lines (verbatim), no bodies
+   * - "signatures": only the first line of each AST symbol (verbatim), no bodies
+   * - "symbol": one specific symbol by name + its full body (line range slice)
+   * - "imports": only import statements (verbatim)
+   */
+  readMode?: "auto" | "full" | "outline" | "signatures" | "symbol" | "imports";
+  /** Symbol name for "symbol" read mode. Finds the symbol in the code index and returns its line range. */
+  symbolName?: string;
 }
 
 /**

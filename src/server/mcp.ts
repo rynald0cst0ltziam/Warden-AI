@@ -384,7 +384,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
 
   server.tool(
     "warden_file_read",
-    cd("Read file, return pruned content. Large files get relevant slice + outline of rest. Use instead of built-in file-read. Code never rewritten, only included/excluded."),
+    cd("Read file, return pruned content. Large files get relevant slice + outline of rest. Use instead of built-in file-read. Code never rewritten, only included/excluded. Supports AST-aware read modes: outline (headers only), signatures (symbol declarations), symbol (one symbol by name), imports (import lines only)."),
     {
       filePath: z
         .string()
@@ -397,6 +397,14 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
         .number()
         .optional()
         .describe("Stop reading at this line (1-based)."),
+      mode: z
+        .enum(["auto", "full", "outline", "signatures", "symbol", "imports"])
+        .optional()
+        .describe("Read mode: auto (default, slice+outline), full (no pruning), outline (headers only), signatures (symbol declarations), symbol (one symbol by name), imports (import lines only)."),
+      symbolName: z
+        .string()
+        .optional()
+        .describe("Symbol name for 'symbol' mode — finds the symbol in the code index and returns its full body."),
     },
     async (args) => {
       const output = await wardenFileRead(warden, args);

@@ -1,7 +1,7 @@
 category,tasks,raw_tokens,pruned_tokens,tokens_saved,reduction_pct,avg_overhead_ms
-grep,5,55655,6944,48711,87.5,17
-testlog,5,17080,7037,10043,58.8,4
-fileread,5,45360,9814,35546,78.4,6
-generic,5,38166,3495,34671,90.8,9
-shell-output,5,16556,4226,12330,74.5,4
-compress,5,41763,27933,13830,33.1,11
+grep,5,55655,6944,48711,87.5,7
+testlog,5,17080,7037,10043,58.8,2
+fileread,5,45360,9814,35546,78.4,4
+generic,5,38166,3495,34671,90.8,5
+shell-output,5,16556,4226,12330,74.5,3
+compress,5,41763,27933,13830,33.1,8

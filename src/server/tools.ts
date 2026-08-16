@@ -423,6 +423,8 @@ export interface FileReadArgs {
   filePath: string;
   startLine?: number;
   endLine?: number;
+  mode?: "auto" | "full" | "outline" | "signatures" | "symbol" | "imports";
+  symbolName?: string;
 }
 
 export async function wardenFileRead(
@@ -475,8 +477,12 @@ export async function wardenFileRead(
           codeIndex,
           filePath: relPath,
           repoRoot,
+          readMode: args.mode,
+          symbolName: args.symbolName,
         }
-      : undefined,
+      : args.mode
+        ? { readMode: args.mode, symbolName: args.symbolName }
+        : undefined,
   );
   return formatOutput(result, warden.totalTokensSaved());
 }

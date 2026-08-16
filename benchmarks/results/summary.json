@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T17:53:11.820Z",
+  "generatedAt": "2026-08-16T11:09:48.281Z",
   "wardenVersion": "1.0.0",
   "totalTasks": 30,
   "guardAllPassed": true,
@@ -8,7 +8,7 @@
     "prunedTokens": 59449,
     "tokensSaved": 155131,
     "reductionPct": 72.3,
-    "totalOverheadMs": 254
+    "totalOverheadMs": 142
   },
   "byCategory": [
     {
@@ -18,7 +18,7 @@
       "pruned": 6944,
       "saved": 48711,
       "reductionPct": 87.5,
-      "avgOverheadMs": 17
+      "avgOverheadMs": 7
     },
     {
       "category": "testlog",
@@ -27,7 +27,7 @@
       "pruned": 7037,
       "saved": 10043,
       "reductionPct": 58.8,
-      "avgOverheadMs": 4
+      "avgOverheadMs": 2
     },
     {
       "category": "fileread",
@@ -36,7 +36,7 @@
       "pruned": 9814,
       "saved": 35546,
       "reductionPct": 78.4,
-      "avgOverheadMs": 6
+      "avgOverheadMs": 4
     },
     {
       "category": "generic",
@@ -45,7 +45,7 @@
       "pruned": 3495,
       "saved": 34671,
       "reductionPct": 90.8,
-      "avgOverheadMs": 9
+      "avgOverheadMs": 5
     },
     {
       "category": "shell-output",
@@ -54,7 +54,7 @@
       "pruned": 4226,
       "saved": 12330,
       "reductionPct": 74.5,
-      "avgOverheadMs": 4
+      "avgOverheadMs": 3
     },
     {
       "category": "compress",
@@ -63,7 +63,7 @@
       "pruned": 27933,
       "saved": 13830,
       "reductionPct": 33.1,
-      "avgOverheadMs": 11
+      "avgOverheadMs": 8
     }
   ]
 }

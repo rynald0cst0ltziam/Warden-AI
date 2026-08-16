@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T17:53:11.816Z",
+  "generatedAt": "2026-08-16T11:09:48.278Z",
   "wardenVersion": "1.0.0",
   "taskCount": 30,
   "guardAllPassed": true,
@@ -14,7 +14,7 @@
       "tokensSaved": 9862,
       "reductionPct": 88.6,
       "guardOk": true,
-      "overheadMs": 59,
+      "overheadMs": 14,
       "taskHint": "find authentication middleware functions"
     },
     {
@@ -40,7 +40,7 @@
       "tokensSaved": 9720,
       "reductionPct": 87.3,
       "guardOk": true,
-      "overheadMs": 5,
+      "overheadMs": 4,
       "taskHint": "find rate limiting implementation"
     },
     {
@@ -53,7 +53,7 @@
       "tokensSaved": 9565,
       "reductionPct": 85.9,
       "guardOk": true,
-      "overheadMs": 7,
+      "overheadMs": 5,
       "taskHint": "find all API route handlers"
     },
     {
@@ -79,7 +79,7 @@
       "tokensSaved": 1830,
       "reductionPct": 53.6,
       "guardOk": true,
-      "overheadMs": 8,
+      "overheadMs": 3,
       "taskHint": "check if all tests pass"
     },
     {
@@ -92,7 +92,7 @@
       "tokensSaved": 2198,
       "reductionPct": 64.3,
       "guardOk": true,
-      "overheadMs": 3,
+      "overheadMs": 2,
       "taskHint": "find failing auth middleware tests"
     },
     {
@@ -105,7 +105,7 @@
       "tokensSaved": 2438,
       "reductionPct": 71.4,
       "guardOk": true,
-      "overheadMs": 3,
+      "overheadMs": 2,
       "taskHint": "check API route test results"
     },
     {
@@ -131,7 +131,7 @@
       "tokensSaved": 1868,
       "reductionPct": 54.7,
       "guardOk": true,
-      "overheadMs": 4,
+      "overheadMs": 2,
       "taskHint": "check email and search service tests"
     },
     {
@@ -144,7 +144,7 @@
       "tokensSaved": 8245,
       "reductionPct": 90.9,
       "guardOk": true,
-      "overheadMs": 7,
+      "overheadMs": 4,
       "taskHint": "understand the DatabaseService class"
     },
     {
@@ -157,7 +157,7 @@
       "tokensSaved": 5358,
       "reductionPct": 59.1,
       "guardOk": true,
-      "overheadMs": 5,
+      "overheadMs": 4,
       "taskHint": "find all user-related methods"
     },
     {
@@ -170,7 +170,7 @@
       "tokensSaved": 7785,
       "reductionPct": 85.8,
       "guardOk": true,
-      "overheadMs": 6,
+      "overheadMs": 4,
       "taskHint": "find session management methods"
     },
     {
@@ -183,7 +183,7 @@
       "tokensSaved": 6383,
       "reductionPct": 70.4,
       "guardOk": true,
-      "overheadMs": 6,
+      "overheadMs": 3,
       "taskHint": "find audit log implementation"
     },
     {
@@ -209,7 +209,7 @@
       "tokensSaved": 9858,
       "reductionPct": 88.6,
       "guardOk": true,
-      "overheadMs": 11,
+      "overheadMs": 6,
       "taskHint": "review code search results"
     },
     {
@@ -222,7 +222,7 @@
       "tokensSaved": 3357,
       "reductionPct": 98.3,
       "guardOk": true,
-      "overheadMs": 9,
+      "overheadMs": 6,
       "taskHint": "review test results"
     },
     {
@@ -235,7 +235,7 @@
       "tokensSaved": 8579,
       "reductionPct": 94.6,
       "guardOk": true,
-      "overheadMs": 10,
+      "overheadMs": 5,
       "taskHint": "review source code"
     },
     {
@@ -248,7 +248,7 @@
       "tokensSaved": 9520,
       "reductionPct": 85.5,
       "guardOk": true,
-      "overheadMs": 8,
+      "overheadMs": 4,
       "taskHint": "understand the codebase structure"
     },
     {
@@ -261,7 +261,7 @@
       "tokensSaved": 3357,
       "reductionPct": 98.3,
       "guardOk": true,
-      "overheadMs": 7,
+      "overheadMs": 3,
       "taskHint": "understand test coverage"
     },
     {
@@ -274,7 +274,7 @@
       "tokensSaved": 2452,
       "reductionPct": 64.3,
       "guardOk": true,
-      "overheadMs": 4,
+      "overheadMs": 3,
       "taskHint": "review recent commit history for auth changes"
     },
     {
@@ -287,7 +287,7 @@
       "tokensSaved": 3500,
       "reductionPct": 64.7,
       "guardOk": true,
-      "overheadMs": 5,
+      "overheadMs": 3,
       "taskHint": "find the cause of the server crash"
     },
     {
@@ -313,7 +313,7 @@
       "tokensSaved": 2166,
       "reductionPct": 85.5,
       "guardOk": true,
-      "overheadMs": 5,
+      "overheadMs": 2,
       "taskHint": "check for compilation warnings and errors"
     },
     {
@@ -326,7 +326,7 @@
       "tokensSaved": 2745,
       "reductionPct": 98.8,
       "guardOk": true,
-      "overheadMs": 6,
+      "overheadMs": 4,
       "taskHint": "find all test files in the project"
     },
     {
@@ -339,7 +339,7 @@
       "tokensSaved": 2517,
       "reductionPct": 27.7,
       "guardOk": true,
-      "overheadMs": 13,
+      "overheadMs": 9,
       "taskHint": "compress file"
     },
     {
@@ -352,7 +352,7 @@
       "tokensSaved": 2517,
       "reductionPct": 27.7,
       "guardOk": true,
-      "overheadMs": 5,
+      "overheadMs": 6,
       "taskHint": "compress file"
     },
     {
@@ -365,7 +365,7 @@
       "tokensSaved": 2552,
       "reductionPct": 28.1,
       "guardOk": true,
-      "overheadMs": 12,
+      "overheadMs": 7,
       "taskHint": "compress file"
     },
     {
@@ -378,7 +378,7 @@
       "tokensSaved": 5249,
       "reductionPct": 47.2,
       "guardOk": true,
-      "overheadMs": 12,
+      "overheadMs": 9,
       "taskHint": "compress file"
     },
     {
@@ -391,7 +391,7 @@
       "tokensSaved": 995,
       "reductionPct": 29.1,
       "guardOk": true,
-      "overheadMs": 14,
+      "overheadMs": 8,
       "taskHint": "compress file"
     }
   ]
