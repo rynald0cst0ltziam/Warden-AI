@@ -155,13 +155,11 @@ export async function runProxy(
     fields?: string[];
     debug?: boolean;
     level?: CompressLevel;
-    compressOutputs?: boolean;
   } = {},
 ): Promise<ProxyResult> {
   const fields = opts.fields ?? DEFAULT_FIELDS;
   const debug = opts.debug ?? process.env.WARDEN_PROXY_DEBUG === "1";
   const level = opts.level ?? (process.env.WARDEN_PROXY_LEVEL as CompressLevel) ?? "full";
-  const compressOutputs = opts.compressOutputs ?? process.env.WARDEN_PROXY_COMPRESS_OUTPUTS === "1";
 
   let invocation: SpawnInvocation;
   try {
@@ -182,23 +180,11 @@ export async function runProxy(
   let descriptionsCompressed = 0;
   let totalBytesBefore = 0;
   let totalBytesAfter = 0;
+  let closed = false;
 
   upstream.on("error", (err) => {
     spawnFailed = true;
     process.stderr.write(`warden proxy: failed to spawn upstream: ${err.message}\n`);
-  });
-
-  // Track exit code/signal for the result
-  let exitCode: number | null = null;
-  let exitSignal: string | null = null;
-
-  upstream.on("close", (code, signal) => {
-    exitCode = code;
-    exitSignal = signal;
-    // Stop accepting client input
-    process.stdin.pause();
-    process.stdin.removeListener("data", forwardInput);
-    process.stdin.removeListener("end", endInput);
   });
 
   // --- Upstream → Client (transform responses) ---
@@ -211,10 +197,27 @@ export async function runProxy(
 
     messagesProcessed++;
 
-    // Check if this is a response (has "result") that might contain tool lists
-    if (msg.json.result !== undefined) {
+    // Handle batch responses (arrays of JSON-RPC messages)
+    if (Array.isArray(msg.json)) {
+      let batchCompressed = 0;
+      let batchBefore = 0;
+      let batchAfter = 0;
+      for (const item of msg.json) {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+          const r = transformResponse(item as Record<string, unknown>, fields, level, debug);
+          batchCompressed += r.compressed;
+          batchBefore += r.bytesBefore;
+          batchAfter += r.bytesAfter;
+        }
+      }
+      descriptionsCompressed += batchCompressed;
+      totalBytesBefore += batchBefore;
+      totalBytesAfter += batchAfter;
+      writeClient(JSON.stringify(msg.json) + "\n");
+    } else if (msg.json.result !== undefined) {
+      // Single response — check if it contains tool lists
       const { message: transformed, compressed, bytesBefore, bytesAfter } =
-        transformResponse(msg.json, fields, level, debug);
+        transformResponse(msg.json as Record<string, unknown>, fields, level, debug);
       descriptionsCompressed += compressed;
       totalBytesBefore += bytesBefore;
       totalBytesAfter += bytesAfter;
@@ -235,15 +238,19 @@ export async function runProxy(
 
   // --- Client → Upstream (pass through unchanged) ---
   function forwardInput(chunk: Buffer): void {
-    if (!upstream.stdin?.writable || upstream.stdin.destroyed) return;
+    if (closed || !upstream.stdin?.writable) return;
     if (!upstream.stdin.write(chunk)) {
       process.stdin.pause();
-      upstream.stdin.once("drain", () => process.stdin.resume());
+      const onDrain = (): void => {
+        upstream.stdin?.removeListener("drain", onDrain);
+        if (!closed) process.stdin.resume();
+      };
+      upstream.stdin.once("drain", onDrain);
     }
   }
 
   function endInput(): void {
-    if (upstream.stdin?.writable && !upstream.stdin.destroyed) {
+    if (upstream.stdin?.writable && !closed) {
       upstream.stdin.end();
     }
   }
@@ -260,14 +267,29 @@ export async function runProxy(
 
   // --- Backpressure handling ---
   function writeClient(data: string): void {
+    if (closed) return;
     if (process.stdout.write(data)) return;
     upstream.stdout?.pause();
-    process.stdout.once("drain", () => upstream.stdout?.resume());
+    const onDrain = (): void => {
+      process.stdout.removeListener("drain", onDrain);
+      if (!closed) upstream.stdout?.resume();
+    };
+    process.stdout.once("drain", onDrain);
   }
 
-  // --- Wait for upstream to exit ---
+  // --- Cleanup + wait for upstream to exit ---
+  function cleanup(): void {
+    if (closed) return;
+    closed = true;
+    process.stdin.pause();
+    process.stdin.removeListener("data", forwardInput);
+    process.stdin.removeListener("end", endInput);
+  }
+
   return new Promise((resolve) => {
     upstream.on("close", (code, signal) => {
+      cleanup();
+
       if (spawnFailed) {
         process.exitCode = 1;
       } else if (signal) {
@@ -282,8 +304,8 @@ export async function runProxy(
         descriptionsCompressed,
         bytesBefore: totalBytesBefore,
         bytesAfter: totalBytesAfter,
-        upstreamExitCode: exitCode,
-        upstreamSignal: exitSignal,
+        upstreamExitCode: code,
+        upstreamSignal: signal,
       });
     });
   });

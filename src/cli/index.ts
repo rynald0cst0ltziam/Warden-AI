@@ -276,19 +276,21 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     .option("--fields <fields>", "Comma-separated field names to compress (default: description)")
     .option("--level <level>", "Compression level: lite, full, ultra (default: full)")
     .option("--debug", "Log compression deltas to stderr")
-    .option("--compress-outputs", "Also compress tools/call responses (experimental)")
     .action(async (command: string, args: string[], opts: {
       fields?: string;
       level?: string;
       debug?: boolean;
-      compressOutputs?: boolean;
     }) => {
       const fields = opts.fields?.split(",").map((s) => s.trim()).filter(Boolean);
+      const validLevels = ["lite", "full", "ultra"];
+      if (opts.level && !validLevels.includes(opts.level)) {
+        process.stderr.write(`Invalid --level "${opts.level}". Must be one of: ${validLevels.join(", ")}\n`);
+        process.exit(1);
+      }
       await runProxy(command, args, {
         fields,
         level: opts.level as "lite" | "full" | "ultra" | undefined,
         debug: opts.debug,
-        compressOutputs: opts.compressOutputs,
       });
     });
 

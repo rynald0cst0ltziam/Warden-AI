@@ -92,12 +92,23 @@ describe("line buffer", () => {
     expect(messages[0]!.parsed).toBe(true);
   });
 
-  it("handles multi-line JSON arrays (not parsed as object)", () => {
+  it("parses JSON arrays (batch requests) as parsed messages", () => {
     const messages: ParsedMessage[] = [];
     const buf = createLineBuffer((msg) => messages.push(msg));
-    buf.push("[1,2,3]\n");
+    buf.push('[{"jsonrpc":"2.0","id":1},{"jsonrpc":"2.0","id":2}]\n');
     expect(messages).toHaveLength(1);
-    expect(messages[0]!.parsed).toBe(false); // arrays aren't JSON-RPC messages
+    expect(messages[0]!.parsed).toBe(true);
+    if (messages[0]!.parsed) {
+      expect(Array.isArray(messages[0]!.json)).toBe(true);
+    }
+  });
+
+  it("rejects JSON primitives (not valid JSON-RPC)", () => {
+    const messages: ParsedMessage[] = [];
+    const buf = createLineBuffer((msg) => messages.push(msg));
+    buf.push("42\n");
+    expect(messages).toHaveLength(1);
+    expect(messages[0]!.parsed).toBe(false);
   });
 });
 
@@ -482,5 +493,33 @@ describe("edge cases", () => {
     expect(reduced).toBe(true);
     expect(compressed).toContain("readFileSync");
     expect(compressed).toContain("node:fs");
+  });
+
+  it("transformResponse handles batch responses (arrays)", () => {
+    const desc = "This tool reads a file from the filesystem. You can use it to read the contents of any file that you have permission to access. Please note that the file path must be absolute. In order to use this tool effectively, you should provide the full path.";
+    const batch = [
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          tools: [{ name: "read_file", description: desc }],
+        },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        result: { protocolVersion: "2024-11-05" },
+      },
+    ];
+
+    // transformResponse works on individual messages, not arrays.
+    // The proxy's line buffer handles arrays by iterating.
+    // Here we verify each item in the batch transforms correctly.
+    let totalCompressed = 0;
+    for (const item of batch) {
+      const { compressed } = transformResponse(item);
+      totalCompressed += compressed;
+    }
+    expect(totalCompressed).toBe(1); // only the first item had a compressible description
   });
 });

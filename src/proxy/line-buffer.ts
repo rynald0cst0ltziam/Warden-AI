@@ -11,7 +11,7 @@
 
 /** A parsed JSON-RPC message or a raw string that couldn't be parsed. */
 export type ParsedMessage =
-  | { parsed: true; json: Record<string, unknown>; raw: string }
+  | { parsed: true; json: Record<string, unknown> | unknown[]; raw: string }
   | { parsed: false; raw: string };
 
 /**
@@ -33,9 +33,10 @@ export function createLineBuffer(onLine: (msg: ParsedMessage) => void): {
       if (line.trim().length === 0) continue; // skip blank lines
       try {
         const json = JSON.parse(line);
-        if (json && typeof json === "object" && !Array.isArray(json)) {
-          onLine({ parsed: true, json: json as Record<string, unknown>, raw: line });
+        if (json && typeof json === "object") {
+          onLine({ parsed: true, json, raw: line });
         } else {
+          // Primitives (string, number, boolean, null) — not valid JSON-RPC
           onLine({ parsed: false, raw: line });
         }
       } catch {
@@ -53,8 +54,8 @@ export function createLineBuffer(onLine: (msg: ParsedMessage) => void): {
       if (buf.trim().length > 0) {
         try {
           const json = JSON.parse(buf);
-          if (json && typeof json === "object" && !Array.isArray(json)) {
-            onLine({ parsed: true, json: json as Record<string, unknown>, raw: buf });
+          if (json && typeof json === "object") {
+            onLine({ parsed: true, json, raw: buf });
           } else {
             onLine({ parsed: false, raw: buf });
           }
