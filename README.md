@@ -118,6 +118,36 @@ Every line in the pruned output exists verbatim in the raw — verified by the t
 
 <br>
 
+## AST-aware read modes
+
+`warden_file_read` now supports 5 read modes beyond the default auto-pruning:
+
+```js
+// Signatures only — symbol declarations, no bodies (80-90% savings)
+warden_file_read({ filePath: "src/auth.ts", mode: "signatures" })
+// → export interface User { ... }
+//   export class AuthService { ... }
+//   async login(user: string, pass: string): Promise<AuthToken>
+//   ...
+
+// One symbol by name — just that function/class body
+warden_file_read({ filePath: "src/auth.ts", mode: "symbol", symbolName: "login" })
+// → the 7 lines of the login() method, nothing else
+
+// Outline only — structural headers, no bodies
+warden_file_read({ filePath: "src/auth.ts", mode: "outline" })
+
+// Imports only — just import statements
+warden_file_read({ filePath: "src/auth.ts", mode: "imports" })
+
+// Full — no pruning (when you need everything)
+warden_file_read({ filePath: "src/auth.ts", mode: "full" })
+```
+
+Powered by the tree-sitter code index. Every line in the output is verbatim from the source file — the trust guard verifies it. When no index is available, falls back to regex-based header detection.
+
+<br>
+
 ## Benchmarks
 
 30 tasks. Measured, not estimated. One command to reproduce:
@@ -367,7 +397,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (370 tests, 30 files) |
+| Tests | Vitest (412 tests, 32 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |
