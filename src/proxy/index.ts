@@ -181,10 +181,13 @@ export async function runProxy(
   let totalBytesBefore = 0;
   let totalBytesAfter = 0;
   let closed = false;
+  let stdinDrainListener: (() => void) | null = null;
+  let stdoutDrainListener: (() => void) | null = null;
 
   upstream.on("error", (err) => {
     spawnFailed = true;
     process.stderr.write(`warden proxy: failed to spawn upstream: ${err.message}\n`);
+    try { upstream.kill(); } catch { /* already dead */ }
   });
 
   // --- Upstream → Client (transform responses) ---
@@ -241,11 +244,12 @@ export async function runProxy(
     if (closed || !upstream.stdin?.writable) return;
     if (!upstream.stdin.write(chunk)) {
       process.stdin.pause();
-      const onDrain = (): void => {
-        upstream.stdin?.removeListener("drain", onDrain);
+      stdinDrainListener = (): void => {
+        upstream.stdin?.removeListener("drain", stdinDrainListener!);
+        stdinDrainListener = null;
         if (!closed) process.stdin.resume();
       };
-      upstream.stdin.once("drain", onDrain);
+      upstream.stdin.once("drain", stdinDrainListener);
     }
   }
 
@@ -270,11 +274,12 @@ export async function runProxy(
     if (closed) return;
     if (process.stdout.write(data)) return;
     upstream.stdout?.pause();
-    const onDrain = (): void => {
-      process.stdout.removeListener("drain", onDrain);
+    stdoutDrainListener = (): void => {
+      process.stdout.removeListener("drain", stdoutDrainListener!);
+      stdoutDrainListener = null;
       if (!closed) upstream.stdout?.resume();
     };
-    process.stdout.once("drain", onDrain);
+    process.stdout.once("drain", stdoutDrainListener);
   }
 
   // --- Cleanup + wait for upstream to exit ---
@@ -284,6 +289,8 @@ export async function runProxy(
     process.stdin.pause();
     process.stdin.removeListener("data", forwardInput);
     process.stdin.removeListener("end", endInput);
+    if (stdinDrainListener) upstream.stdin?.removeListener("drain", stdinDrainListener);
+    if (stdoutDrainListener) process.stdout.removeListener("drain", stdoutDrainListener);
   }
 
   return new Promise((resolve) => {

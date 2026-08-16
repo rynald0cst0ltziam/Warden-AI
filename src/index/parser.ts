@@ -720,10 +720,13 @@ export function parseFile(filePath: string): ParseResult {
     const tree = parser.parse(content);
     if (!tree) return { symbols: [], imports: [], calls: [] };
 
-    const result = walkTree(tree.rootNode, absPath, content, config);
-    tree.delete();
-    parser.delete();
-    return result;
+    try {
+      const result = walkTree(tree.rootNode, absPath, content, config);
+      return result;
+    } finally {
+      tree.delete();
+      parser.delete();
+    }
   } catch {
     return { symbols: [], imports: [], calls: [] };
   }

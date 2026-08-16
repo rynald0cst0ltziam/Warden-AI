@@ -194,9 +194,10 @@ export async function sufficientContext(opts: {
 
     // Re-sort kept files by original order (by relevance from base)
     const keptPaths = new Set(kept.map((f) => f.filePath));
+    const keptById = new Map(kept.map((f) => [f.filePath, f]));
     files.length = 0;
     files.push(...base.package
-      .map((f) => enrichedById(files, f.filePath))
+      .map((f) => keptById.get(f.filePath) ?? null)
       .filter((f): f is SufficientContextFile => f !== null && keptPaths.has(f.filePath))
     );
 

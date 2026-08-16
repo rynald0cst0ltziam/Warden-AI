@@ -219,7 +219,7 @@ npx tsx benchmarks/run-bench.ts
 | **Agent memory** | Decisions persist across sessions with lifecycle (reaffirm, supersede, archive). Failed approaches surface as warnings | 0 repeated mistakes |
 | **Response compression** | Rules drop filler, preamble, narration. Code stays verbatim | 45-65% per reply |
 | **File compression** | `warden compress` strips filler from memory files, no LLM call | up to 32% per file |
-| **Description compression** | 24 tool descriptions compressed before sending | ~41% per turn |
+| **Description compression** | 32 tool descriptions compressed before sending | ~41% per turn |
 | **Session continuity** | `warden_handoff` reads previous session at start, writes at end | 0 cold starts |
 | **Git context** | File history, blame, churn metrics — know if code is stable or volatile | fewer surprises |
 | **Sufficient context** | Unified context: files + past decisions + failed approaches + git volatility + token budget | 90%+ smaller context |
@@ -386,7 +386,7 @@ Combines file recommendations, past decisions, failed approach warnings, git vol
 
 ## MCP tools
 
-**30+ tools. All called automatically by your agent via the rules file.**
+**32 tools. All called automatically by your agent via the rules file.**
 
 | Category | Tools |
 |:---------|:------|
