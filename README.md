@@ -150,7 +150,9 @@ Powered by the tree-sitter code index. Every line in the output is verbatim from
 
 ## MCP proxy mode
 
-Warden can wrap any upstream MCP server and compress its tool descriptions:
+Warden can wrap any upstream MCP server and compress its tool descriptions,
+inputSchemas, and tool-call responses — and optionally replace the full tool
+catalog with a tiny lazy-loading surface:
 
 ```jsonc
 {
@@ -177,7 +179,56 @@ warden proxy npx some-mcp-server --level ultra
 
 # Also prune tools/call response content (guard-verified, removal-only)
 warden proxy npx @modelcontextprotocol/server-filesystem /tmp --prune-responses
+
+# Lazy-loading: replace 50+ tools with 3 meta-tools (97.9% catalog reduction)
+warden proxy npx some-mcp-server --lazy --lazy-level medium
+
+# Compress inputSchema JSON-Schemas (strip cosmetic fields, compress descriptions)
+warden proxy npx some-mcp-server --compress-schema
+
+# All features combined
+warden proxy npx some-mcp-server --lazy --lazy-level medium --compress-schema --prune-responses
 ```
+
+### Lazy-loading mode (`--lazy`)
+
+Replaces the full tool catalog with 3 meta-tools, matching the pattern used by
+mcp-compressor (Atlassian) and mcp-slim (dopatools). The client sees a tiny
+surface and loads schemas on demand:
+
+- `warden_list_tools` — returns a compact index of tool names and short descriptions
+- `warden_get_tool_schema` — returns the full inputSchema for one tool
+- `warden_invoke_tool` — forwards a `tools/call` to the upstream
+
+The full schemas are cached from the upstream's `tools/list` response and
+returned on demand. This reduces initial context by **97.9%** on a 50-tool
+server (14,105 → 297 tokens).
+
+Lazy listing levels (`--lazy-level`):
+
+| Level | Format | Description included |
+|-------|--------|---------------------|
+| `low` | `name(arg1, arg2): full compressed description` | Full (compressed) |
+| `medium` | `name(arg1, arg2): first sentence` | First sentence only |
+| `high` | `name(arg1, arg2)` | None |
+| `max` | `name` | None |
+
+- Opt-in via `--lazy` (or `WARDEN_PROXY_LAZY=1`); **off by default**.
+- `--lazy-level` controls compactness (default: `medium`).
+
+### inputSchema compression (`--compress-schema`)
+
+Strips cosmetic JSON-Schema fields that add tokens without affecting validation:
+`title`, `default`, `examples`, `$schema`, `$comment`, `readOnly`, `writeOnly`,
+unreferenced `$defs`/`definitions`. Compresses `description` strings within
+schema properties using Warden's prose compression engine.
+
+**Never touches validation constraints**: `type`, `required`, `enum`, `minimum`,
+`maximum`, `pattern`, `items`, `properties`, `additionalProperties`, `oneOf`,
+`anyOf`, `allOf`, `not`, `$ref`, `deprecated`, etc. are preserved exactly.
+
+- Measured **21.5% additional reduction** on top of description compression.
+- Opt-in via `--compress-schema` (or `WARDEN_PROXY_COMPRESS_SCHEMA=1`); **off by default**.
 
 ### Guard-verified response pruning (`--prune-responses`)
 
@@ -375,7 +426,7 @@ Combines file recommendations, past decisions, failed approach warnings, git vol
 |:--------|:-------------|
 | `warden init` | Register in all agents + write rules + build index + compress files |
 | `warden serve` | Run MCP server over stdio (called by agents automatically) |
-|| `warden proxy <cmd> [args]` | MCP proxy — wrap any upstream MCP server and compress its tool descriptions (`--fields`, `--level`, `--debug`, `--prune-responses`) |
+|| `warden proxy <cmd> [args]` | MCP proxy — wrap any upstream MCP server: compress descriptions, schemas, responses; lazy-loading meta-tools (`--fields`, `--level`, `--debug`, `--prune-responses`, `--lazy`, `--lazy-level`, `--compress-schema`) |
 | `warden status` | Rules, confidence, tokens saved, recent memories |
 | `warden hud` | Live terminal HUD (Ctrl+C to exit) |
 | `warden dashboard` | Web UI at http://localhost:7878 |

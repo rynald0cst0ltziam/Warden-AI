@@ -275,11 +275,17 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     .option("--fields <fields>", "Comma-separated field names to compress (default: description)")
     .option("--level <level>", "Compression level: lite, full, ultra (default: full)")
     .option("--prune-responses", "Also prune tools/call response content behind the trust guard (removal-only, guard-verified; default off)")
+    .option("--lazy", "Enable lazy-loading mode: replace tool catalog with 3 meta-tools (warden_list_tools, warden_get_tool_schema, warden_invoke_tool); 70-97% catalog reduction; default off")
+    .option("--lazy-level <level>", "Lazy listing level: low, medium, high, max (default: medium)")
+    .option("--compress-schema", "Compress inputSchema JSON-Schemas: strip cosmetic fields (title, default, examples), compress property descriptions; default off")
     .option("--debug", "Log compression deltas to stderr")
     .action(async (command: string, args: string[], opts: {
       fields?: string;
       level?: string;
       pruneResponses?: boolean;
+      lazy?: boolean;
+      lazyLevel?: string;
+      compressSchema?: boolean;
       debug?: boolean;
     }) => {
       const fields = opts.fields?.split(",").map((s) => s.trim()).filter(Boolean);
@@ -288,10 +294,18 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
         process.stderr.write(`Invalid --level "${opts.level}". Must be one of: ${validLevels.join(", ")}\n`);
         process.exit(1);
       }
+      const validLazyLevels = ["low", "medium", "high", "max"];
+      if (opts.lazyLevel && !validLazyLevels.includes(opts.lazyLevel)) {
+        process.stderr.write(`Invalid --lazy-level "${opts.lazyLevel}". Must be one of: ${validLazyLevels.join(", ")}\n`);
+        process.exit(1);
+      }
       await runProxy(command, args, {
         fields,
         level: opts.level as "lite" | "full" | "ultra" | undefined,
         pruneResponses: opts.pruneResponses,
+        lazy: opts.lazy,
+        lazyLevel: opts.lazyLevel as "low" | "medium" | "high" | "max" | undefined,
+        compressSchema: opts.compressSchema,
         debug: opts.debug,
       });
     });
