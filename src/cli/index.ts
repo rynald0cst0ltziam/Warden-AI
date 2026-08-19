@@ -268,16 +268,16 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
   program
     .command("proxy", { isDefault: false })
     .description(
-      "MCP proxy middleware. Wraps an upstream MCP server and compresses tool descriptions to save context tokens. Usage: warden proxy <command> [...args]",
+      "MCP proxy middleware. Wraps an upstream MCP server and compresses tool descriptions, inputSchemas, and tool-call responses. Lazy-loading and schema compression are ON by default. Usage: warden proxy <command> [...args]",
     )
     .argument("<command>", "Upstream MCP server command (e.g. npx, node)")
     .argument("[args...]", "Arguments for the upstream command")
     .option("--fields <fields>", "Comma-separated field names to compress (default: description)")
     .option("--level <level>", "Compression level: lite, full, ultra (default: full)")
     .option("--prune-responses", "Also prune tools/call response content behind the trust guard (removal-only, guard-verified; default off)")
-    .option("--lazy", "Enable lazy-loading mode: replace tool catalog with 3 meta-tools (warden_list_tools, warden_get_tool_schema, warden_invoke_tool); 70-97% catalog reduction; default off")
+    .option("--no-lazy", "Disable lazy-loading mode (enabled by default: replaces tool catalog with 3 meta-tools, 97.9% catalog reduction)")
     .option("--lazy-level <level>", "Lazy listing level: low, medium, high, max (default: medium)")
-    .option("--compress-schema", "Compress inputSchema JSON-Schemas: strip cosmetic fields (title, default, examples), compress property descriptions; default off")
+    .option("--no-compress-schema", "Disable inputSchema compression (enabled by default: strips cosmetic JSON-Schema fields, compresses descriptions)")
     .option("--debug", "Log compression deltas to stderr")
     .action(async (command: string, args: string[], opts: {
       fields?: string;

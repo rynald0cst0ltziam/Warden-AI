@@ -168,7 +168,7 @@ catalog with a tiny lazy-loading surface:
 The proxy spawns the upstream server, intercepts `tools/list` / `prompts/list` / `resources/list` responses, and compresses `description` fields using Warden's compression engine. Technical identifiers (code, paths, URLs, version numbers) are preserved. All other messages pass through unchanged.
 
 ```bash
-# Wrap any MCP server
+# Wrap any MCP server (lazy-loading + schema compression ON by default)
 warden proxy npx @modelcontextprotocol/server-filesystem /tmp
 
 # Custom fields + debug logging
@@ -180,20 +180,19 @@ warden proxy npx some-mcp-server --level ultra
 # Also prune tools/call response content (guard-verified, removal-only)
 warden proxy npx @modelcontextprotocol/server-filesystem /tmp --prune-responses
 
-# Lazy-loading: replace 50+ tools with 3 meta-tools (97.9% catalog reduction)
-warden proxy npx some-mcp-server --lazy --lazy-level medium
+# Disable lazy-loading (show full tool catalog)
+warden proxy npx some-mcp-server --no-lazy
 
-# Compress inputSchema JSON-Schemas (strip cosmetic fields, compress descriptions)
-warden proxy npx some-mcp-server --compress-schema
+# Disable schema compression (keep full inputSchemas)
+warden proxy npx some-mcp-server --no-compress-schema
 
 # All features combined
-warden proxy npx some-mcp-server --lazy --lazy-level medium --compress-schema --prune-responses
+warden proxy npx some-mcp-server --lazy-level medium --compress-schema --prune-responses
 ```
 
 ### Lazy-loading mode (`--lazy`)
 
-Replaces the full tool catalog with 3 meta-tools, matching the pattern used by
-mcp-compressor (Atlassian) and mcp-slim (dopatools). The client sees a tiny
+Replaces the full tool catalog with 3 meta-tools. The client sees a tiny
 surface and loads schemas on demand:
 
 - `warden_list_tools` — returns a compact index of tool names and short descriptions
@@ -213,7 +212,7 @@ Lazy listing levels (`--lazy-level`):
 | `high` | `name(arg1, arg2)` | None |
 | `max` | `name` | None |
 
-- Opt-in via `--lazy` (or `WARDEN_PROXY_LAZY=1`); **off by default**.
+- **On by default**. Disable via `--no-lazy` (or `WARDEN_PROXY_LAZY=0`).
 - `--lazy-level` controls compactness (default: `medium`).
 
 ### inputSchema compression (`--compress-schema`)
@@ -228,11 +227,11 @@ schema properties using Warden's prose compression engine.
 `anyOf`, `allOf`, `not`, `$ref`, `deprecated`, etc. are preserved exactly.
 
 - Measured **21.5% additional reduction** on top of description compression.
-- Opt-in via `--compress-schema` (or `WARDEN_PROXY_COMPRESS_SCHEMA=1`); **off by default**.
+- **On by default**. Disable via `--no-compress-schema` (or `WARDEN_PROXY_COMPRESS_SCHEMA=0`).
 
 ### Guard-verified response pruning (`--prune-responses`)
 
-Description-only compressors (e.g. `caveman-shrink`) deliberately never touch
+Description-only compressors deliberately never touch
 `tools/call` responses — rewriting a tool's output is unsafe. Warden can prune
 them safely because the **trust guard** enforces that the pruned output is a
 verbatim subsequence of the raw: lines are removed, never altered. If the guard

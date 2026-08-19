@@ -1,6 +1,6 @@
 {
   "name": "warden-ai",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "The structurally-verified context layer for AI coding agents. 32 MCP tools across 10 layers: code intelligence (tree-sitter, 30+ languages), context selection, tool output pruning (50-91% per call), agent memory with lifecycle, response compression, file compression, MCP tool description compression, MCP proxy mode (compress any MCP server's tool descriptions, inputSchemas, and tool-call responses — plus lazy-loading meta-tools for 97.9% catalog reduction), session continuity, and safety. 72.3% average token reduction, 100% trust guard pass rate, 8ms overhead. 30-task benchmark suite. Works with Claude Code, Cursor, Windsurf, Codex, Gemini, and 30+ agents. Local-first, zero cloud, zero telemetry.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",

@@ -44,9 +44,9 @@
  *   WARDEN_PROXY_PRUNE_RESPONSES=1  also prune tools/call response content
  *                             (guard-verified, removal-only; default off)
  *   WARDEN_PROXY_LEVEL        compression level: lite, full, ultra (default: full)
- *   WARDEN_PROXY_LAZY=1       enable lazy-loading mode (default off)
+ *   WARDEN_PROXY_LAZY=0       disable lazy-loading mode (default: on)
  *   WARDEN_PROXY_LAZY_LEVEL   lazy listing level: low, medium, high, max (default: medium)
- *   WARDEN_PROXY_COMPRESS_SCHEMA=1  compress inputSchema JSON-Schemas (default off)
+ *   WARDEN_PROXY_COMPRESS_SCHEMA=0  disable inputSchema compression (default: on)
  *
  * Usage:
  *   warden proxy <upstream-command> [...args]
@@ -340,10 +340,12 @@ export async function runProxy(
   const level = opts.level ?? (process.env.WARDEN_PROXY_LEVEL as CompressLevel) ?? "full";
   const pruneResponses =
     opts.pruneResponses ?? process.env.WARDEN_PROXY_PRUNE_RESPONSES === "1";
-  const lazy = opts.lazy ?? process.env.WARDEN_PROXY_LAZY === "1";
+  // Lazy-loading + schema compression are ON by default.
+  // Disable via --no-lazy / --no-compress-schema or WARDEN_PROXY_LAZY=0 / WARDEN_PROXY_COMPRESS_SCHEMA=0.
+  const lazy = opts.lazy !== false && process.env.WARDEN_PROXY_LAZY !== "0";
   const lazyLevel = opts.lazyLevel ?? (process.env.WARDEN_PROXY_LAZY_LEVEL as LazyLevel) ?? "medium";
   const compressSchema =
-    opts.compressSchema ?? process.env.WARDEN_PROXY_COMPRESS_SCHEMA === "1";
+    opts.compressSchema !== false && process.env.WARDEN_PROXY_COMPRESS_SCHEMA !== "0";
   const engine = pruneResponses ? new PruningEngine() : null;
 
   let invocation: SpawnInvocation;
@@ -491,7 +493,10 @@ export async function runProxy(
         }
       }
       if (remaining.length === 0) return null;
-      return JSON.stringify(remaining);
+      // Forward remaining items as individual lines (not as a batch).
+      // Many upstream MCP servers don't handle batch requests, and the
+      // JSON-RPC spec allows splitting a batch into individual messages.
+      return remaining.map((item) => JSON.stringify(item)).join("\n");
     }
 
     // Single request
