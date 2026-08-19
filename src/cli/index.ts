@@ -29,7 +29,6 @@ import { runDashboard } from "../dashboard/index.js";
 import {
   setBudgetCap,
   removeBudgetCap,
-  listBudgetCaps,
   budgetReport,
 } from "../budget/index.js";
 import { exportAuditTrail, type ExportFormat } from "../audit/export.js";

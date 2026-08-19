@@ -9,8 +9,9 @@
  *   5. Recent decisions — audit trail of recent prune/promote/revert actions
  *   6. Recent memories — last few saved decisions
  *
- * Two modes:
- *   - `renderOnce()`  — print a single snapshot and exit (used by `warden status`)
+ * Entry points:
+ *   - `renderHud()`   — build a single snapshot string (used by `warden status`)
+ *   - `renderOnce()`  — clear the screen and print one snapshot (public API)
  *   - `renderLive()`  — refresh every `intervalMs` until Ctrl+C (used by `warden hud`)
  *
  * Uses chalk for ANSI coloring. All output goes to stdout (this is a CLI
