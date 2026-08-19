@@ -12,18 +12,26 @@
  *   - Intercepts tools/list, prompts/list, resources/list responses
  *   - Compresses description fields using Warden's compression engine
  *   - Verifies compressed descriptions preserve technical identifiers
+ *   - Optionally prunes tools/call response content behind the trust guard
+ *     (opt-in) — every kept line is verbatim from the raw, never rewritten
  *   - Forwards all other messages unchanged (both directions)
  *
- * What it deliberately does NOT do (v1):
- *   - Compress tools/call response content (high risk of breaking parsing)
+ * What it deliberately does NOT do:
  *   - Modify request payloads going TO the upstream server
  *   - Multi-server aggregation (single upstream only for now)
+ *
+ * Tool-call response pruning is the one thing description-only compressors
+ * (e.g. caveman-shrink) refuse to do, because rewriting a tool's output is
+ * unsafe. Warden can do it safely because the trust guard enforces that the
+ * pruned output is a verbatim subsequence of the raw — lines are removed,
+ * never altered. It is opt-in and defaults OFF.
  *
  * Configuration (env vars):
  *   WARDEN_PROXY_FIELDS       comma-separated field names to compress
  *                             (default: description)
  *   WARDEN_PROXY_DEBUG=1      log compression deltas to stderr
- *   WARDEN_PROXY_COMPRESS_OUTPUTS=1  also compress tools/call responses
+ *   WARDEN_PROXY_PRUNE_RESPONSES=1  also prune tools/call response content
+ *                             (guard-verified, removal-only; default off)
  *   WARDEN_PROXY_LEVEL        compression level: lite, full, ultra (default: full)
  *
  * Usage:
@@ -43,6 +51,7 @@ import { constants as osConstants } from "node:os";
 import { createLineBuffer, type ParsedMessage } from "./line-buffer.js";
 import { getSpawnInvocation, getSpawnOptions, type SpawnInvocation } from "./spawn.js";
 import { compressFile, type CompressLevel } from "../compress/index.js";
+import { PruningEngine } from "../pruner/index.js";
 import { logger } from "../logging/index.js";
 
 /** Fields to compress in list responses. */
@@ -56,6 +65,12 @@ export interface ProxyResult {
   descriptionsCompressed: number;
   bytesBefore: number;
   bytesAfter: number;
+  /** tools/call response content blocks pruned (0 unless pruneResponses). */
+  responseBlocksPruned: number;
+  /** Bytes of tool-call response content before pruning. */
+  responseBytesBefore: number;
+  /** Bytes of tool-call response content after pruning. */
+  responseBytesAfter: number;
   upstreamExitCode: number | null;
   upstreamSignal: string | null;
 }
@@ -142,6 +157,72 @@ export function transformResponse(
 }
 
 /**
+ * Prune the content of a tools/call response using Warden's pruning engine.
+ *
+ * Unlike description compression (which rewrites prose), this runs the raw
+ * tool output through the pruning engine, whose trust guard guarantees the
+ * pruned output is a VERBATIM subsequence of the raw — lines are removed,
+ * never altered. If the guard fails or nothing was removed, the original text
+ * is left untouched. This is why it is safe where prose compression is not.
+ *
+ * Only `text` content blocks are considered. The message is mutated in place
+ * and also returned. Callers must have already confirmed this response is for
+ * a tools/call request (JSON-RPC responses carry no method name).
+ */
+export function pruneToolCallResult(
+  msg: Record<string, unknown>,
+  engine: PruningEngine,
+  debug = false,
+): { message: Record<string, unknown>; blocksPruned: number; bytesBefore: number; bytesAfter: number } {
+  const result = msg.result;
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return { message: msg, blocksPruned: 0, bytesBefore: 0, bytesAfter: 0 };
+  }
+  const content = (result as Record<string, unknown>).content;
+  if (!Array.isArray(content)) {
+    return { message: msg, blocksPruned: 0, bytesBefore: 0, bytesAfter: 0 };
+  }
+
+  let blocksPruned = 0;
+  let bytesBefore = 0;
+  let bytesAfter = 0;
+
+  for (const block of content) {
+    if (!block || typeof block !== "object" || Array.isArray(block)) continue;
+    const b = block as Record<string, unknown>;
+    if (b.type !== "text" || typeof b.text !== "string") continue;
+
+    const original = b.text as string;
+    const pr = engine.prune({
+      toolType: "generic",
+      rawOutput: original,
+      task: { type: "unknown", relevanceHint: "", userMessage: "", toolName: null },
+    });
+
+    // The engine enforces the trust guard and never-worse check internally.
+    // Only apply when the guard passed AND something was actually removed.
+    if (pr.guardOk && pr.prunedOutput.length < original.length) {
+      b.text = pr.prunedOutput;
+      const before = Buffer.byteLength(original, "utf8");
+      const after = Buffer.byteLength(pr.prunedOutput, "utf8");
+      blocksPruned++;
+      bytesBefore += before;
+      bytesAfter += after;
+      if (debug) {
+        logger.debug("proxy pruned tool-call response", {
+          ruleId: pr.ruleId,
+          before,
+          after,
+          reduction: `${(((before - after) / before) * 100).toFixed(1)}%`,
+        });
+      }
+    }
+  }
+
+  return { message: msg, blocksPruned, bytesBefore, bytesAfter };
+}
+
+/**
  * Run the MCP proxy. Spawns the upstream server, pipes stdio bidirectionally,
  * and compresses description fields in list responses.
  *
@@ -155,11 +236,18 @@ export async function runProxy(
     fields?: string[];
     debug?: boolean;
     level?: CompressLevel;
+    /** Prune tools/call response content behind the trust guard (opt-in). */
+    pruneResponses?: boolean;
   } = {},
 ): Promise<ProxyResult> {
   const fields = opts.fields ?? DEFAULT_FIELDS;
   const debug = opts.debug ?? process.env.WARDEN_PROXY_DEBUG === "1";
   const level = opts.level ?? (process.env.WARDEN_PROXY_LEVEL as CompressLevel) ?? "full";
+  const pruneResponses =
+    opts.pruneResponses ?? process.env.WARDEN_PROXY_PRUNE_RESPONSES === "1";
+  // Pruning engine is only built when response pruning is enabled. It needs no
+  // DB or config — prune() is pure and enforces the trust guard internally.
+  const engine = pruneResponses ? new PruningEngine() : null;
 
   let invocation: SpawnInvocation;
   try {
@@ -180,9 +268,57 @@ export async function runProxy(
   let descriptionsCompressed = 0;
   let totalBytesBefore = 0;
   let totalBytesAfter = 0;
+  let responseBlocksPruned = 0;
+  let responseBytesBefore = 0;
+  let responseBytesAfter = 0;
   let closed = false;
   let stdinDrainListener: (() => void) | null = null;
   let stdoutDrainListener: (() => void) | null = null;
+
+  // Track request ids whose method is "tools/call" so their responses can be
+  // pruned (JSON-RPC responses carry no method name). Bounded to avoid growth
+  // if the client never reads some responses.
+  const pendingToolCalls = new Map<string | number, true>();
+  const MAX_PENDING = 1000;
+  function recordRequest(o: unknown): void {
+    if (!o || typeof o !== "object" || Array.isArray(o)) return;
+    const r = o as Record<string, unknown>;
+    if (r.method !== "tools/call") return;
+    if (typeof r.id !== "string" && typeof r.id !== "number") return;
+    if (pendingToolCalls.size >= MAX_PENDING) {
+      const oldest = pendingToolCalls.keys().next().value;
+      if (oldest !== undefined) pendingToolCalls.delete(oldest);
+    }
+    pendingToolCalls.set(r.id, true);
+  }
+  // Observes the client→upstream stream to learn which ids are tools/call.
+  // Observation only — it never writes; requests are still forwarded verbatim.
+  const requestObserver = pruneResponses
+    ? createLineBuffer((m: ParsedMessage) => {
+        if (!m.parsed) return;
+        if (Array.isArray(m.json)) m.json.forEach(recordRequest);
+        else recordRequest(m.json);
+      })
+    : null;
+
+  // Compress list descriptions and (optionally) prune a tools/call response,
+  // mutating `obj` in place. Returns the byte deltas for stats.
+  function handleResponseObj(obj: Record<string, unknown>): void {
+    const t = transformResponse(obj, fields, level, debug);
+    descriptionsCompressed += t.compressed;
+    totalBytesBefore += t.bytesBefore;
+    totalBytesAfter += t.bytesAfter;
+    if (pruneResponses && engine) {
+      const id = obj.id;
+      if ((typeof id === "string" || typeof id === "number") && pendingToolCalls.has(id)) {
+        pendingToolCalls.delete(id);
+        const pr = pruneToolCallResult(obj, engine, debug);
+        responseBlocksPruned += pr.blocksPruned;
+        responseBytesBefore += pr.bytesBefore;
+        responseBytesAfter += pr.bytesAfter;
+      }
+    }
+  }
 
   upstream.on("error", (err) => {
     spawnFailed = true;
@@ -202,29 +338,18 @@ export async function runProxy(
 
     // Handle batch responses (arrays of JSON-RPC messages)
     if (Array.isArray(msg.json)) {
-      let batchCompressed = 0;
-      let batchBefore = 0;
-      let batchAfter = 0;
       for (const item of msg.json) {
         if (item && typeof item === "object" && !Array.isArray(item)) {
-          const r = transformResponse(item as Record<string, unknown>, fields, level, debug);
-          batchCompressed += r.compressed;
-          batchBefore += r.bytesBefore;
-          batchAfter += r.bytesAfter;
+          handleResponseObj(item as Record<string, unknown>);
         }
       }
-      descriptionsCompressed += batchCompressed;
-      totalBytesBefore += batchBefore;
-      totalBytesAfter += batchAfter;
       writeClient(JSON.stringify(msg.json) + "\n");
     } else if (msg.json.result !== undefined) {
-      // Single response — check if it contains tool lists
-      const { message: transformed, compressed, bytesBefore, bytesAfter } =
-        transformResponse(msg.json as Record<string, unknown>, fields, level, debug);
-      descriptionsCompressed += compressed;
-      totalBytesBefore += bytesBefore;
-      totalBytesAfter += bytesAfter;
-      writeClient(JSON.stringify(transformed) + "\n");
+      // Single response — compress tool-list descriptions and, if enabled and
+      // this id was a tools/call, prune its response content behind the guard.
+      const obj = msg.json as Record<string, unknown>;
+      handleResponseObj(obj);
+      writeClient(JSON.stringify(obj) + "\n");
     } else {
       // Notifications, errors, etc. — pass through unchanged
       writeClient(JSON.stringify(msg.json) + "\n");
@@ -242,6 +367,15 @@ export async function runProxy(
   // --- Client → Upstream (pass through unchanged) ---
   function forwardInput(chunk: Buffer): void {
     if (closed || !upstream.stdin?.writable) return;
+    // Tee to the request observer (observation only — never mutates or blocks
+    // the forwarded bytes). Wrapped so a parse hiccup can't break the stream.
+    if (requestObserver) {
+      try {
+        requestObserver.push(chunk);
+      } catch {
+        /* observation only — ignore */
+      }
+    }
     if (!upstream.stdin.write(chunk)) {
       process.stdin.pause();
       stdinDrainListener = (): void => {
@@ -311,6 +445,9 @@ export async function runProxy(
         descriptionsCompressed,
         bytesBefore: totalBytesBefore,
         bytesAfter: totalBytesAfter,
+        responseBlocksPruned,
+        responseBytesBefore,
+        responseBytesAfter,
         upstreamExitCode: code,
         upstreamSignal: signal,
       });

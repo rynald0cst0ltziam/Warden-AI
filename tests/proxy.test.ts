@@ -24,8 +24,11 @@ import {
 import {
   compressProxyDescription,
   transformResponse,
+  pruneToolCallResult,
 } from "../src/proxy/index.js";
 import { compressFile } from "../src/compress/index.js";
+import { PruningEngine } from "../src/pruner/index.js";
+import { verifyInclusion } from "../src/pruner/guard.js";
 
 // ---------------------------------------------------------------------------
 // Line buffer
@@ -521,5 +524,83 @@ describe("edge cases", () => {
       totalCompressed += compressed;
     }
     expect(totalCompressed).toBe(1); // only the first item had a compressible description
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tool-call response pruning (guard-verified, removal-only)
+// ---------------------------------------------------------------------------
+
+describe("pruneToolCallResult", () => {
+  const engine = new PruningEngine();
+
+  function toolCallMsg(text: string): Record<string, unknown> {
+    return {
+      jsonrpc: "2.0",
+      id: 1,
+      result: { content: [{ type: "text", text }], isError: false },
+    };
+  }
+
+  // 100 low-signal lines — over the generic module's 80-line threshold.
+  const bigText = Array.from(
+    { length: 100 },
+    (_, n) => `processing record ${n} of 100`,
+  ).join("\n");
+
+  it("prunes a large low-signal tool-call response", () => {
+    const msg = toolCallMsg(bigText);
+    const { blocksPruned, bytesBefore, bytesAfter } = pruneToolCallResult(msg, engine);
+    expect(blocksPruned).toBe(1);
+    expect(bytesAfter).toBeLessThan(bytesBefore);
+  });
+
+  it("keeps every retained line verbatim from the raw (guard invariant)", () => {
+    const msg = toolCallMsg(bigText);
+    pruneToolCallResult(msg, engine);
+    const pruned = (msg.result as { content: Array<{ text: string }> }).content[0]!.text;
+    expect(verifyInclusion(bigText, pruned)).toBe(true);
+  });
+
+  it("leaves small content unchanged", () => {
+    const text = "line one\nline two\nline three";
+    const msg = toolCallMsg(text);
+    const { blocksPruned } = pruneToolCallResult(msg, engine);
+    expect(blocksPruned).toBe(0);
+    expect((msg.result as { content: Array<{ text: string }> }).content[0]!.text).toBe(text);
+  });
+
+  it("ignores non-text content blocks", () => {
+    const msg = {
+      jsonrpc: "2.0",
+      id: 2,
+      result: { content: [{ type: "image", data: "base64data" }] },
+    };
+    const { blocksPruned } = pruneToolCallResult(msg, engine);
+    expect(blocksPruned).toBe(0);
+  });
+
+  it("handles result without a content array", () => {
+    const msg = { jsonrpc: "2.0", id: 3, result: { protocolVersion: "2024-11-05" } };
+    const { blocksPruned } = pruneToolCallResult(msg, engine);
+    expect(blocksPruned).toBe(0);
+  });
+
+  it("handles content block with non-string text", () => {
+    const msg = {
+      jsonrpc: "2.0",
+      id: 4,
+      result: { content: [{ type: "text", text: 42 }] },
+    };
+    const { blocksPruned } = pruneToolCallResult(msg, engine);
+    expect(blocksPruned).toBe(0);
+  });
+
+  it("handles null, primitive, and array results", () => {
+    for (const result of [null, 42, [1, 2, 3]]) {
+      const msg = { jsonrpc: "2.0", id: 5, result } as Record<string, unknown>;
+      const { blocksPruned } = pruneToolCallResult(msg, engine);
+      expect(blocksPruned).toBe(0);
+    }
   });
 });

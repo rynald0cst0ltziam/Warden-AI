@@ -174,7 +174,22 @@ warden proxy npx @modelcontextprotocol/server-github --fields description,summar
 
 # Compression level
 warden proxy npx some-mcp-server --level ultra
+
+# Also prune tools/call response content (guard-verified, removal-only)
+warden proxy npx @modelcontextprotocol/server-filesystem /tmp --prune-responses
 ```
+
+### Guard-verified response pruning (`--prune-responses`)
+
+Description-only compressors (e.g. `caveman-shrink`) deliberately never touch
+`tools/call` responses — rewriting a tool's output is unsafe. Warden can prune
+them safely because the **trust guard** enforces that the pruned output is a
+verbatim subsequence of the raw: lines are removed, never altered. If the guard
+fails or nothing is removed, the original ships untouched.
+
+- Opt-in via `--prune-responses` (or `WARDEN_PROXY_PRUNE_RESPONSES=1`); **off by default**.
+- Runs each text content block through Warden's pruning engine (same trust guard as the wrapper tools).
+- Measured **~79% reduction** on a large, low-signal tool result — with every retained line byte-for-byte identical to the original.
 
 Works with any MCP client (Claude Code, Cursor, Windsurf, Codex, Gemini). Stdio-based — no HTTP server needed.
 
@@ -360,7 +375,7 @@ Combines file recommendations, past decisions, failed approach warnings, git vol
 |:--------|:-------------|
 | `warden init` | Register in all agents + write rules + build index + compress files |
 | `warden serve` | Run MCP server over stdio (called by agents automatically) |
-|| `warden proxy <cmd> [args]` | MCP proxy — wrap any upstream MCP server and compress its tool descriptions (`--fields`, `--level`, `--debug`) |
+|| `warden proxy <cmd> [args]` | MCP proxy — wrap any upstream MCP server and compress its tool descriptions (`--fields`, `--level`, `--debug`, `--prune-responses`) |
 | `warden status` | Rules, confidence, tokens saved, recent memories |
 | `warden hud` | Live terminal HUD (Ctrl+C to exit) |
 | `warden dashboard` | Web UI at http://localhost:7878 |
@@ -430,7 +445,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (454 tests, 33 files) |
+| Tests | Vitest (461 tests, 33 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |

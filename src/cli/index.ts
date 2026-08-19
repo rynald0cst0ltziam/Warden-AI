@@ -274,10 +274,12 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     .argument("[args...]", "Arguments for the upstream command")
     .option("--fields <fields>", "Comma-separated field names to compress (default: description)")
     .option("--level <level>", "Compression level: lite, full, ultra (default: full)")
+    .option("--prune-responses", "Also prune tools/call response content behind the trust guard (removal-only, guard-verified; default off)")
     .option("--debug", "Log compression deltas to stderr")
     .action(async (command: string, args: string[], opts: {
       fields?: string;
       level?: string;
+      pruneResponses?: boolean;
       debug?: boolean;
     }) => {
       const fields = opts.fields?.split(",").map((s) => s.trim()).filter(Boolean);
@@ -289,6 +291,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       await runProxy(command, args, {
         fields,
         level: opts.level as "lite" | "full" | "ultra" | undefined,
+        pruneResponses: opts.pruneResponses,
         debug: opts.debug,
       });
     });
