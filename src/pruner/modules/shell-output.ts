@@ -333,12 +333,8 @@ const PATTERNS: ShellPattern[] = [
       for (let i = 0; i < lines.length; i++) {
         const l = lines[i]!;
         if (GIT_DIFF_RE.test(l) || l.startsWith("+") || l.startsWith("-") || l.startsWith(" ")) {
-          if (l.startsWith(" ") && !l.startsWith("  ") === false) {
-            // Context line — keep if near a change
-            output.push(l);
-          } else {
-            output.push(l);
-          }
+          // Diff headers, added/removed lines, and context lines — keep verbatim.
+          output.push(l);
         } else {
           let run = 0;
           while (i < lines.length && !GIT_DIFF_RE.test(lines[i]!) && !lines[i]!.startsWith("+") && !lines[i]!.startsWith("-")) {

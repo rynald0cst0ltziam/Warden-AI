@@ -366,8 +366,11 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
     )
     .action(async () => {
       const warden = await Warden.create();
-      process.stdout.write((await renderHud(warden)) + "\n");
-      warden.close();
+      try {
+        process.stdout.write((await renderHud(warden)) + "\n");
+      } finally {
+        warden.close();
+      }
     });
 
   program
@@ -1031,25 +1034,28 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       const store = await SqliteStore.open(dbPath(wardenRoot));
       const memory = new AgentMemory(store);
 
-      const result = await sufficientContext({
-        task,
-        repoRoot: root,
-        maxFiles: opts.maxFiles ? parseInt(opts.maxFiles, 10) : 15,
-        tokenBudget: opts.budget ? parseInt(opts.budget, 10) : undefined,
-        store,
-        memory: {
-          recall: (q, n) => memory.recall(q, n),
-          findFailedApproaches: (q, n) => memory.findFailedApproaches(q, n),
-        },
-        git: {
-          gitChangeFrequency: (r, p) => gitChangeFrequency(r, p),
-        },
-        memoryLimit: opts.memoryLimit ? parseInt(opts.memoryLimit, 10) : 5,
-        failedApproachLimit: opts.failedLimit ? parseInt(opts.failedLimit, 10) : 3,
-      });
+      try {
+        const result = await sufficientContext({
+          task,
+          repoRoot: root,
+          maxFiles: opts.maxFiles ? parseInt(opts.maxFiles, 10) : 15,
+          tokenBudget: opts.budget ? parseInt(opts.budget, 10) : undefined,
+          store,
+          memory: {
+            recall: (q, n) => memory.recall(q, n),
+            findFailedApproaches: (q, n) => memory.findFailedApproaches(q, n),
+          },
+          git: {
+            gitChangeFrequency: (r, p) => gitChangeFrequency(r, p),
+          },
+          memoryLimit: opts.memoryLimit ? parseInt(opts.memoryLimit, 10) : 5,
+          failedApproachLimit: opts.failedLimit ? parseInt(opts.failedLimit, 10) : 3,
+        });
 
-      process.stdout.write(formatSufficientContext(result) + "\n");
-      store.close();
+        process.stdout.write(formatSufficientContext(result) + "\n");
+      } finally {
+        store.close();
+      }
     });
 
   // ---- outcome tracking command ----

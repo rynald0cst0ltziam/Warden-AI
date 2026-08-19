@@ -281,13 +281,6 @@ function categorizeFile(filePath: string, reason: string): ContextCategory {
 }
 
 /**
- * Find an enriched file by path (helper for budget trimming).
- */
-function enrichedById(files: SufficientContextFile[], filePath: string): SufficientContextFile | null {
-  return files.find((f) => f.filePath === filePath) ?? null;
-}
-
-/**
  * Format the sufficient context result as human-readable text.
  */
 export function formatSufficientContext(result: SufficientContextResult): string {

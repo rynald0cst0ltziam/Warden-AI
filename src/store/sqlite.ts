@@ -102,6 +102,8 @@ export interface CcrRow {
 
 export class SqliteStore {
   readonly db: DatabaseSync;
+  /** Whether the FTS5 virtual table is available. Set by ensureMemoryFts(). */
+  private ftsAvailable = false;
 
   private constructor(db: DatabaseSync) {
     this.db = db;
@@ -352,8 +354,11 @@ export class SqliteStore {
         }
         logger.info("FTS5 index backfilled", { memories: memCount.c });
       }
+      // FTS5 is available and in sync — enable atomic FTS writes on save.
+      this.ftsAvailable = true;
     } catch (err) {
       // FTS5 not available or migration failed — recall will fall back to LIKE
+      this.ftsAvailable = false;
       logger.warn("FTS5 migration failed (non-fatal — LIKE fallback active)", {
         err: String(err),
       });
@@ -637,41 +642,61 @@ export class SqliteStore {
       return existing.id;
     }
 
-    const result = this.db
-      .prepare(
-        `INSERT INTO memories
-           (timestamp,category,title,body,tags_json,source,confidence,
-            status,scope,supersedes_id,source_type,evidence_json,outcome)
-         VALUES (?,?,?,?,?,?,1.0,?,?,?,?,?,?)`,
-      )
-      .run(
-        new Date().toISOString(),
-        opts.category,
-        opts.title,
-        opts.body,
-        JSON.stringify(opts.tags),
-        opts.source ?? null,
-        // P1 fields
-        "active",
-        opts.scope ?? null,
-        opts.supersedesId ?? null,
-        opts.sourceType ?? null,
-        JSON.stringify(opts.evidence ?? []),
-        opts.outcome ?? null,
-      );
-    const id = Number(result.lastInsertRowid);
-    // Sync FTS5 index (standalone table, no triggers)
-    try {
-      this.db
+    const insertMain = (): number => {
+      const result = this.db
         .prepare(
-          "INSERT INTO memories_fts(rowid, title, body, tags) VALUES (?, ?, ?, ?)",
+          `INSERT INTO memories
+             (timestamp,category,title,body,tags_json,source,confidence,
+              status,scope,supersedes_id,source_type,evidence_json,outcome)
+           VALUES (?,?,?,?,?,?,1.0,?,?,?,?,?,?)`,
         )
-        .run(id, opts.title, opts.body, JSON.stringify(opts.tags));
-    } catch {
-      // FTS5 not available — recall will fall back to LIKE
+        .run(
+          new Date().toISOString(),
+          opts.category,
+          opts.title,
+          opts.body,
+          JSON.stringify(opts.tags),
+          opts.source ?? null,
+          // P1 fields
+          "active",
+          opts.scope ?? null,
+          opts.supersedesId ?? null,
+          opts.sourceType ?? null,
+          JSON.stringify(opts.evidence ?? []),
+          opts.outcome ?? null,
+        );
+      return Number(result.lastInsertRowid);
+    };
+
+    // When FTS5 is available, keep the main row and its FTS index entry
+    // atomic: either both are written or neither is. This prevents a memory
+    // that exists in the main table but is silently missing from the FTS
+    // index (which recall would then fail to surface). When FTS5 is not
+    // available, just insert the main row — recall falls back to LIKE.
+    if (this.ftsAvailable) {
+      this.db.exec("BEGIN");
+      try {
+        const id = insertMain();
+        this.db
+          .prepare(
+            "INSERT INTO memories_fts(rowid, title, body, tags) VALUES (?, ?, ?, ?)",
+          )
+          .run(id, opts.title, opts.body, JSON.stringify(opts.tags));
+        this.db.exec("COMMIT");
+        return id;
+      } catch (err) {
+        this.db.exec("ROLLBACK");
+        // FTS write failed mid-transaction — disable FTS and retry as a plain
+        // main-row insert so the memory is never lost. Recall uses LIKE.
+        this.ftsAvailable = false;
+        logger.warn("FTS5 insert failed on save — disabling FTS, using LIKE", {
+          err: String(err),
+        });
+        return insertMain();
+      }
     }
 
-    return id;
+    return insertMain();
   }
 
   /**
