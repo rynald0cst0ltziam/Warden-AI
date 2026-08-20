@@ -27,9 +27,9 @@
  *   - Multi-server aggregation (single upstream only for now)
  *
  * Tool-call response pruning is the one thing description-only compressors
- * (e.g. caveman-shrink) refuse to do, because rewriting a tool's output is
- * unsafe. Warden can do it safely because the trust guard enforces that the
- * pruned output is a verbatim subsequence of the raw — lines are removed,
+ * refuse to do, because rewriting a tool's output is unsafe. Warden can do
+ * it safely because the trust guard enforces that the pruned output is a
+ * verbatim subsequence of the raw — lines are removed,
  * never altered. It is opt-in and defaults OFF.
  *
  * Lazy-loading mode replaces the full tool catalog with 3 meta-tools, matching

@@ -1,5 +1,5 @@
 /**
- * Agent memory — Layer 3 of Warden's context governance.
+ * Agent memory — Layer 3 of Warden's context optimization.
  *
  * Layers 1 and 2 govern *input* context (which files to read, how to prune
  * tool output). Layer 3 governs *durable* context: the project decisions,

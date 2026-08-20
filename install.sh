@@ -13,7 +13,7 @@
 set -e
 
 echo ""
-echo "  Warden — structurally-verified context layer for AI coding agents"
+echo "  Warden — verified context for AI coding agents"
 echo "  ────────────────────────────────────────────────────────────────────"
 echo ""
 

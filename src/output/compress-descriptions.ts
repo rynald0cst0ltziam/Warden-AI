@@ -5,7 +5,7 @@
  * These descriptions are prose that sits in the agent's context for the
  * entire session. Compressing them saves input tokens on every turn.
  *
- * This is Warden's equivalent of caveman-shrink — but applied to our own
+ * Built-in description compression — applied to Warden's own
  * tool descriptions before they're registered with the MCP server.
  *
  * The compression is deterministic and preserves:

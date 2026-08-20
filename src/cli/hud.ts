@@ -72,7 +72,7 @@ function header(warden: Warden): string {
   return [
     "",
     chalk.bold.cyan("  warden") +
-      chalk.gray(" — structurally-verified context layer") +
+      chalk.gray(" — verified context for AI coding agents") +
       chalk.gray(` — project: ${projectName}`) +
       "  " +
       health,

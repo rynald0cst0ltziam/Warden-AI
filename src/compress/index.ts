@@ -1,16 +1,15 @@
 /**
  * Deterministic file compression — v2.
  *
- * Improved based on research of Caveman, mdcompress, ContextCompressionEngine,
- * tokenshrink, and Terse.ai:
+ * Improved based on research of existing markdown compressors:
  *
- * - Multi-pass sentinel restoration (fixes caveman-shrink's nesting bug #444)
+ * - Multi-pass sentinel restoration (fixes nesting bugs in single-pass approaches)
  * - Sentence restructuring (not just word stripping — collapses multi-clause
  *   sentences into fragments)
- * - Inline code validation (caveman misses this — issue #112)
- * - No abbreviations (measured zero token savings under BPE, per tokenshrink)
+ * - Inline code validation (single-pass compressors miss this)
+ * - No abbreviations (measured zero token savings under BPE)
  * - Article removal in ultra mode (biggest single win after filler)
- * - Heading preservation (caveman validates this, we should too)
+ * - Heading preservation
  * - Bullet hierarchy preservation
  *
  * Three levels:
@@ -41,7 +40,7 @@ function approxTokens(s: string): number {
 // Protected segments — technical content that must survive verbatim
 //
 // Uses a sentinel format that won't collide with prose: \x00P000\x00
-// Multi-pass restoration handles nested patterns (caveman-shrink bug #444).
+// Multi-pass restoration handles nested patterns (single-pass bug).
 // ---------------------------------------------------------------------------
 
 export interface ProtectedSegment {

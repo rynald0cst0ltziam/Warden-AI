@@ -182,8 +182,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
   };
 
   // Helper: compress a tool description to save input tokens (descriptions sit
-  // in context for the entire session). Equivalent of caveman-shrink, applied
-  // to our own tool descriptions.
+  // in context for the entire session). Built-in description compression.
   const cd = (desc: string): string => compressDescription(desc);
 
   // Shared response for code-intelligence tools when the project hasn't been

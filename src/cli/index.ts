@@ -64,7 +64,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
   program
     .name("warden")
     .description(
-      "The structurally-verified context layer for AI coding agents.",
+      "Verified context for AI coding agents.",
     )
     .version(PKG_VERSION);
 

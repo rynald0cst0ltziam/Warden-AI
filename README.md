@@ -3,14 +3,22 @@
 </p>
 
 <p align="center">
+ <strong>Verified context for AI coding agents.</strong>
+</p>
+
+<p align="center">
  <strong>Your AI agent burns tokens on noise. Warden stops that.</strong>
+</p>
+
+<p align="center">
+ Less context. More signal. Verified.
 </p>
 
 <p align="center">
  <a href="https://www.npmjs.com/package/warden-ai"><img src="https://img.shields.io/npm/v/warden-ai.svg?style=for-the-badge&color=blue" alt="npm"></a>
  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm_Shield-yellow.svg?style=for-the-badge" alt="License"></a>
- <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-30%2B_agents-orange.svg?style=for-the-badge" alt="30+ agents"></a>
- <a href="#trust-guard"><img src="https://img.shields.io/badge/trust_guard-100%25_pass-brightgreen.svg?style=for-the-badge" alt="Trust Guard"></a>
+ <a href="#works-with-30-agents"><img src="https://img.shields.io/badge/works_with-35%2B_agents-orange.svg?style=for-the-badge" alt="35+ agents"></a>
+ <a href="#trust-guard"><img src="https://img.shields.io/badge/verified_context-100%25_pass-brightgreen.svg?style=for-the-badge" alt="Verified Context"></a>
  <a href="#privacy"><img src="https://img.shields.io/badge/local_first-no_cloud-blue.svg?style=for-the-badge" alt="Local First"></a>
  <a href="https://warden-io.vercel.app"><img src="https://img.shields.io/badge/website-warden--io-blue.svg?style=for-the-badge" alt="Website"></a>
 </p>
@@ -19,11 +27,25 @@
 
 Every token your agent spends on noise is a token it didn't spend on your actual problem. **Warden fixes this.**
 
-Warden is an MCP server that drops into Claude Code, Cursor, Codex, Windsurf, Cline, Gemini, and 30+ other agents. Install once. Warden prunes tool output, compresses responses, indexes your codebase, and remembers decisions across sessions — then **proves every cut is safe** with a verifiable trust guard.
+Warden is a local context layer for AI coding agents. It drops into Claude Code, Cursor, Codex, Windsurf, Cline, Gemini, and 30+ other agents. Install once. Warden removes unnecessary tool-output noise, preserves important information, indexes your codebase for efficient retrieval, maintains useful memory across sessions — then **verifies that compression did not lose critical information**.
 
 **50-90% fewer tokens. Zero config. Zero cloud. Zero lock-in.**
 
 > **Benchmarked.** 30-task suite. 72.3% overall reduction. 100% guard pass rate. 8ms avg overhead. [See the numbers →](benchmarks/README.md)
+
+## Why Warden?
+
+Most context optimizers simply remove or summarize information. **Warden verifies the reduction.**
+
+```
+Raw agent output → Warden → Intelligent reduction → Verification → Agent
+```
+
+Warden stands between your coding agent and the firehose of tool output. The agent requests huge amounts of information. Warden decides what actually needs to reach the agent, then verifies the result — every retained line is checked byte-for-byte against the raw output. If anything was altered, the raw ships instead. No exceptions.
+
+This is the differentiator: not just compression, but **verified compression**. You don't have to trust that Warden got it right — the trust guard proves it on every call.
+
+> **Warden AI is a local context layer for AI coding agents. It is not a security firewall, authentication system, agent framework, or infrastructure management tool.**
 
 ## Install
 
@@ -274,7 +296,7 @@ npx tsx benchmarks/run-bench.ts
 
 ## What it does
 
-**Eight layers. One MCP server. Zero config.**
+**Verified context optimization across eight layers. One MCP server. Zero config.**
 
 | Layer | What it does | Savings |
 |:------|:-------------|:-------:|
@@ -405,7 +427,7 @@ Combines file recommendations, past decisions, failed approach warnings, git vol
 
 <br>
 
-## Works with 30+ agents
+## Works with 35+ agents
 
 | | | | | |
 |:---:|:---:|:---:|:---:|:---:|
@@ -495,7 +517,7 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
 | Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
 | Build | tsup (esbuild) |
-| Tests | Vitest (461 tests, 33 files) |
+| Tests | Vitest (546 tests, 35 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |

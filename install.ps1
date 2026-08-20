@@ -8,7 +8,7 @@
 #   - Compresses memory files (saves tokens every future session)
 
 Write-Host ""
-Write-Host "  Warden — structurally-verified context layer for AI coding agents" -ForegroundColor Cyan
+Write-Host "  Warden — verified context for AI coding agents" -ForegroundColor Cyan
 Write-Host "  --------------------------------------------------------------------"
 Write-Host ""
 
