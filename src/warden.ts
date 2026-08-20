@@ -108,6 +108,16 @@ export class Warden {
       registerProject(repoRoot, path);
     }
 
+    // Pre-warm the embedding model in the background so semantic memory
+    // search is ready by the first recall(). Non-blocking — if this fails,
+    // recall falls back to FTS5. The model downloads once (~22 MB) and
+    // caches locally under ~/.warden/models/.
+    if (process.env.WARDEN_NO_EMBEDDINGS !== "1" && process.env.WARDEN_NO_EMBEDDINGS !== "true") {
+      import("./memory/embeddings.js")
+        .then((m) => m.warmEmbeddings())
+        .catch(() => { /* non-fatal — FTS5 fallback */ });
+    }
+
     // First-run welcome message (only when the DB was just created)
     if (!dbExisted && process.env.WARDEN_SILENT !== "1") {
       const live = registeredModules().length;

@@ -931,7 +931,7 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
       const projectMemory = args.repoRoot
         ? (await getProjectStore(args.repoRoot)).memory
         : memory;
-      const results = projectMemory.recall(args.query, args.limit ?? 10);
+      const results = await projectMemory.recall(args.query, args.limit ?? 10);
       if (results.length === 0) {
         return {
           content: [

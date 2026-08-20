@@ -47,7 +47,7 @@ beforeEach(() => {
 });
 
 describe("P1: Structured provenance", () => {
-  it("saves a memory with sourceType, evidence, and scope", () => {
+  it("saves a memory with sourceType, evidence, and scope", async () => {
     const id = memory.save({
       category: "decision",
       title: "Use PostgreSQL for order storage",
@@ -58,7 +58,7 @@ describe("P1: Structured provenance", () => {
       scope: "order-service",
     });
 
-    const results = memory.recall("PostgreSQL");
+    const results = await memory.recall("PostgreSQL");
     const found = results.find((r) => r.id === id);
     expect(found).toBeDefined();
     expect(found!.sourceType).toBe("documentation");
@@ -68,7 +68,7 @@ describe("P1: Structured provenance", () => {
     expect(found!.status).toBe("active");
   });
 
-  it("saves a memory without P1 fields (backward compatible)", () => {
+  it("saves a memory without P1 fields (backward compatible)", async () => {
     const id = memory.save({
       category: "decision",
       title: "Use JWT for auth",
@@ -76,7 +76,7 @@ describe("P1: Structured provenance", () => {
       tags: ["auth"],
     });
 
-    const results = memory.recall("JWT");
+    const results = await memory.recall("JWT");
     const found = results.find((r) => r.id === id);
     expect(found).toBeDefined();
     expect(found!.sourceType).toBeNull();
@@ -155,7 +155,7 @@ describe("P1: Failed approach memory", () => {
 });
 
 describe("P1: Decision lifecycle", () => {
-  it("reaffirm increments count and updates timestamp", () => {
+  it("reaffirm increments count and updates timestamp", async () => {
     const id = memory.save({
       category: "decision",
       title: "Use Stripe for payments",
@@ -167,13 +167,13 @@ describe("P1: Decision lifecycle", () => {
     expect(ok).toBe(true);
 
     // Verify by recalling
-    const results = memory.recall("Stripe");
+    const results = await memory.recall("Stripe");
     const found = results.find((r) => r.id === id);
     expect(found!.reaffirmedCount).toBe(1);
     expect(found!.lastReaffirmedAt).not.toBeNull();
   });
 
-  it("supersede marks old as superseded and links to new", () => {
+  it("supersede marks old as superseded and links to new", async () => {
     const oldId = memory.save({
       category: "decision",
       title: "Use PayPal for payments",
@@ -191,19 +191,19 @@ describe("P1: Decision lifecycle", () => {
     });
 
     // Verify old is superseded (auto-superseded by save)
-    const oldResults = memory.recall("PayPal");
+    const oldResults = await memory.recall("PayPal");
     const oldFound = oldResults.find((r) => r.id === oldId);
     expect(oldFound!.status).toBe("superseded");
     expect(oldFound!.supersedesId).toBe(newId);
 
     // Verify new is active
-    const newResults = memory.recall("Stripe");
+    const newResults = await memory.recall("Stripe");
     const newFound = newResults.find((r) => r.id === newId);
     expect(newFound!.status).toBe("active");
     expect(newFound!.supersedesId).toBe(oldId);
   });
 
-  it("explicit supersede() also works for manual lifecycle", () => {
+  it("explicit supersede() also works for manual lifecycle", async () => {
     const oldId = memory.save({
       category: "decision",
       title: "Use MongoDB for logs",
@@ -223,7 +223,7 @@ describe("P1: Decision lifecycle", () => {
     const ok = memory.supersede(oldId, newId);
     expect(ok).toBe(true);
 
-    const oldResults = memory.recall("MongoDB");
+    const oldResults = await memory.recall("MongoDB");
     const oldFound = oldResults.find((r) => r.id === oldId);
     expect(oldFound!.status).toBe("superseded");
     expect(oldFound!.supersedesId).toBe(newId);

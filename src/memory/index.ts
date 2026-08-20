@@ -18,6 +18,17 @@
  * access-time touch keeps recently-useful memories surfaced first.
  */
 
+import {
+  embed,
+  embedBatch,
+  warmEmbeddings,
+  embeddingsAvailable,
+  embeddingsFailed,
+  cosineSimilarity,
+  embeddingToBuffer,
+  bufferToEmbedding,
+} from "./embeddings.js";
+
 /** Shape of a memory the agent wants to persist. */
 export interface MemoryInput {
   /** "decision" | "finding" | "pattern" | "constraint" | "preference" | "failed_approach" */
@@ -113,13 +124,27 @@ export interface MemoryStore {
   rejectMemory(id: number): boolean;
   getMemory(id: number): MemoryRow | undefined;
   findFailedApproaches(query: string, limit?: number): MemoryRow[];
+  // Semantic search: embedding storage
+  setMemoryEmbedding(id: number, embedding: Buffer): void;
+  getMemoryEmbedding(id: number): Buffer | null;
+  allMemoryEmbeddings(): Array<{ id: number; embedding: Buffer }>;
+  countEmbeddedMemories(): number;
 }
 
 /**
  * Agent memory facade. Wraps the store with validation, access-time tracking,
  * and a clean `MemoryResult` shape (parsed tags, camelCase fields).
+ *
+ * Recall uses hybrid search: FTS5 (keyword, porter-stemmed) + vector
+ * (semantic, all-MiniLM-L6-v2 embeddings) merged via Reciprocal Rank Fusion.
+ * If the embedding model is unavailable, recall falls back to FTS5 only.
  */
 export class AgentMemory {
+  /** Cached embeddings for vector search. Invalidated on save/forget. */
+  private embeddingCache: Map<number, Float32Array> | null = null;
+  /** Whether the embedding cache covers all current memories. */
+  private embeddingCacheStale = true;
+
   constructor(private store: MemoryStore) {}
 
   /**
@@ -154,35 +179,85 @@ export class AgentMemory {
     if (input.supersedesId) {
       this.store.supersedeMemory(input.supersedesId, id);
     }
+    // Fire-and-forget: generate embedding for this memory so future
+    // recall() calls can use semantic search. Non-blocking — if this
+    // fails, recall falls back to FTS5. The cache is marked stale so
+    // the next recall reloads it.
+    this.embeddingCacheStale = true;
+    void this.generateEmbeddingForMemory(id, input.title, input.body, input.tags);
     return id;
   }
 
   /**
-   * Recall memories relevant to a task.
+   * Recall memories relevant to a task using hybrid search.
    *
-   * Searches the store for text matches, touches (updates access time/count
-   * for) each result so recently-useful memories resurface, then converts the
-   * raw rows to `MemoryResult` and sorts by relevance: recently accessed
-   * first, then recently created.
+   * Runs two search strategies:
+   *   1. FTS5 keyword search (porter-stemmed, tokenized) — exact term matching
+   *   2. Vector semantic search (all-MiniLM-L6-v2 cosine similarity) — intent matching
+   *
+   * Results are merged using Reciprocal Rank Fusion (RRF, k=60):
+   *   score = 1/(k + rank_fts) + 1/(k + rank_vec)
+   *
+   * This means a memory found by BOTH methods ranks higher than one found by
+   * only one. Memories found by semantic search but not FTS5 (e.g. "login"
+   * query matching "authentication approach" memory) are still surfaced.
+   *
+   * Non-blocking: if the embedding model is not yet loaded, recall uses FTS5
+   * only and triggers model loading in the background for subsequent calls.
+   * If the model has permanently failed, FTS5 is used for the session.
+   *
+   * Touches (updates access time/count) for each result.
    */
-  recall(query: string, limit?: number): MemoryResult[] {
-    const rows = this.store.recallMemories(query, limit);
-    const results = rows.map((row) => {
-      // Touch each recalled memory so its access time/count stays fresh.
-      this.store.touchMemory(row.id);
-      return this.toResult(row);
-    });
-    // Sort by relevance: most recently accessed first, then most recently
-    // created. Memories that have never been accessed sort after ones that
-    // have, but still by creation recency among themselves.
-    return results.sort((a, b) => {
-      const aAccessed = a.accessedAt ?? "";
-      const bAccessed = b.accessedAt ?? "";
-      if (aAccessed !== bAccessed) {
-        return bAccessed < aAccessed ? -1 : 1;
+  async recall(query: string, limit?: number): Promise<MemoryResult[]> {
+    const trimmed = query.trim();
+    if (trimmed.length === 0) {
+      const rows = this.store.listMemories(limit);
+      return rows.map((row) => this.toResult(row));
+    }
+
+    // 1. FTS5 keyword search (always available, fast)
+    const ftsRows = this.store.recallMemories(trimmed, limit ?? 10);
+    const ftsRanked = ftsRows.map((row, idx) => ({ id: row.id, row, rank: idx + 1 }));
+
+    // 2. Vector semantic search — ONLY if model is already loaded.
+    //    If not loaded, trigger loading in background and use FTS5 only.
+    //    This ensures recall never blocks on model download/loading.
+    let vecRanked: Array<{ id: number; row: MemoryRow; rank: number }> = [];
+    if (embeddingsAvailable()) {
+      // Model is loaded — backfill any missing embeddings, then search
+      await this.ensureEmbeddings();
+      const queryEmb = await embed(trimmed);
+      if (queryEmb) {
+        const allEmbs = this.getEmbeddingCache();
+        if (allEmbs.size > 0) {
+          const scored: Array<{ id: number; row: MemoryRow; score: number }> = [];
+          for (const [id, emb] of allEmbs) {
+            const row = this.store.getMemory(id);
+            if (!row) continue;
+            if (row.status && row.status !== "active") continue;
+            const sim = cosineSimilarity(queryEmb, emb);
+            scored.push({ id, row, score: sim });
+          }
+          scored.sort((a, b) => b.score - a.score);
+          vecRanked = scored.map((s, idx) => ({ id: s.id, row: s.row, rank: idx + 1 }));
+        }
       }
-      return b.timestamp < a.timestamp ? -1 : 1;
+    } else if (!embeddingsFailed()) {
+      // Model not yet loaded — trigger loading + backfill in background.
+      // Next recall() will use hybrid search. This one uses FTS5 only.
+      void this.warmAndBackfill();
+    }
+
+    // 3. Merge with Reciprocal Rank Fusion (RRF, k=60)
+    const merged = this.rrfMerge(ftsRanked, vecRanked, limit ?? 10);
+
+    // 4. Touch and convert to MemoryResult
+    const results = merged.map((entry) => {
+      this.store.touchMemory(entry.id);
+      return this.toResult(entry.row);
     });
+
+    return results;
   }
 
   /**
@@ -254,6 +329,156 @@ export class AgentMemory {
   findFailedApproaches(query: string, limit?: number): MemoryResult[] {
     const rows = this.store.findFailedApproaches(query, limit);
     return rows.map((row) => this.toResult(row));
+  }
+
+  // ---- Hybrid search internals ----
+
+  /** RRF constant — standard value from the original paper. */
+  private static readonly RRF_K = 60;
+
+  /**
+   * Merge FTS5 and vector search results using Reciprocal Rank Fusion.
+   * Each result's score = 1/(k + rank_fts) + 1/(k + rank_vec).
+   * Memories found by both methods rank higher than those found by one.
+   * Memories found by only one method still get a score from that method.
+   */
+  private rrfMerge(
+    ftsRanked: Array<{ id: number; row: MemoryRow; rank: number }>,
+    vecRanked: Array<{ id: number; row: MemoryRow; rank: number }>,
+    limit: number,
+  ): Array<{ id: number; row: MemoryRow }> {
+    const k = AgentMemory.RRF_K;
+    const scores = new Map<number, { score: number; row: MemoryRow }>();
+
+    for (const entry of ftsRanked) {
+      const rrfScore = 1 / (k + entry.rank);
+      scores.set(entry.id, { score: rrfScore, row: entry.row });
+    }
+
+    for (const entry of vecRanked) {
+      const rrfScore = 1 / (k + entry.rank);
+      const existing = scores.get(entry.id);
+      if (existing) {
+        existing.score += rrfScore;
+      } else {
+        scores.set(entry.id, { score: rrfScore, row: entry.row });
+      }
+    }
+
+    // Sort by RRF score descending, then by access recency as tiebreaker
+    const entries = Array.from(scores.entries()).map(([id, { score, row }]) => ({
+      id,
+      score,
+      row,
+    }));
+    entries.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      // Tiebreaker: recently accessed first, then recently created
+      const aAccessed = a.row.accessed_at ?? "";
+      const bAccessed = b.row.accessed_at ?? "";
+      if (aAccessed !== bAccessed) return bAccessed < aAccessed ? -1 : 1;
+      return b.row.timestamp < a.row.timestamp ? -1 : 1;
+    });
+
+    return entries.slice(0, limit).map((e) => ({ id: e.id, row: e.row }));
+  }
+
+  /**
+   * Get the in-memory embedding cache. Loads from the store on first access
+   * or when stale. Returns a map of memory id → Float32Array.
+   */
+  private getEmbeddingCache(): Map<number, Float32Array> {
+    if (this.embeddingCache && !this.embeddingCacheStale) {
+      return this.embeddingCache;
+    }
+    const rows = this.store.allMemoryEmbeddings();
+    const cache = new Map<number, Float32Array>();
+    for (const row of rows) {
+      const emb = bufferToEmbedding(row.embedding);
+      if (emb) cache.set(row.id, emb);
+    }
+    this.embeddingCache = cache;
+    this.embeddingCacheStale = false;
+    return cache;
+  }
+
+  /**
+   * Ensure all existing memories have embeddings. Called on first recall()
+   * to backfill memories created before semantic search was enabled.
+   * Runs in the background — recall doesn't wait for backfill to complete
+   * (it uses whatever embeddings are available at the moment).
+   */
+  /**
+   * Warm the embedding model and backfill any missing embeddings.
+   * Called fire-and-forget — never blocks recall(). Once complete,
+   * subsequent recall() calls will use hybrid search.
+   */
+  private async warmAndBackfill(): Promise<void> {
+    const ok = await warmEmbeddings();
+    if (ok) {
+      await this.ensureEmbeddings();
+    }
+  }
+
+  private async ensureEmbeddings(): Promise<void> {
+    if (embeddingsFailed()) return;
+
+    try {
+      // Check if there are memories without embeddings
+      const allMemories = this.store.listMemories(100000);
+      const missing = allMemories.filter((m) => {
+        // Only embed active memories
+        if (m.status && m.status !== "active") return false;
+        return !this.store.getMemoryEmbedding(m.id);
+      });
+
+      if (missing.length === 0) return;
+
+      // Backfill in batches of 32 to avoid memory spikes
+      const BATCH = 32;
+      for (let i = 0; i < missing.length; i += BATCH) {
+        const batch = missing.slice(i, i + BATCH);
+        const texts = batch.map((m) => `${m.title} ${m.body} ${m.tags_json}`);
+        const embeddings = await embedBatch(texts);
+        for (let j = 0; j < batch.length; j++) {
+          const emb = embeddings[j];
+          if (emb) {
+            this.store.setMemoryEmbedding(batch[j]!.id, embeddingToBuffer(emb));
+          }
+        }
+      }
+      // Invalidate cache so next recall picks up the new embeddings
+      this.embeddingCacheStale = true;
+    } catch {
+      // DB may have been closed or model failed mid-batch. Non-fatal —
+      // FTS5 search still works, backfill will retry on next recall.
+    }
+  }
+
+  /**
+   * Generate and store an embedding for a single memory.
+   * Called fire-and-forget after save() — non-blocking.
+   */
+  private async generateEmbeddingForMemory(
+    id: number,
+    title: string,
+    body: string,
+    tags: string[],
+  ): Promise<void> {
+    if (embeddingsFailed()) return;
+
+    try {
+      const text = `${title} ${body} ${tags.join(" ")}`;
+      const emb = await embed(text);
+      if (emb) {
+        this.store.setMemoryEmbedding(id, embeddingToBuffer(emb));
+        this.embeddingCacheStale = true;
+      }
+    } catch {
+      // DB may have been closed (e.g. CLI process exiting). The embedding
+      // will be generated on the next recall via ensureEmbeddings() backfill.
+      // Non-fatal — FTS5 search still works.
+    }
   }
 
   /**

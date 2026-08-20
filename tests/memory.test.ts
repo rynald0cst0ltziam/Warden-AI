@@ -37,7 +37,7 @@ afterAll(() => {
 });
 
 describe("AgentMemory — basic save and recall", () => {
-  it("saves a memory and recalls it by title", () => {
+  it("saves a memory and recalls it by title", async () => {
     const id = memory.save({
       category: "decision",
       title: "Use Stripe for payments",
@@ -46,7 +46,7 @@ describe("AgentMemory — basic save and recall", () => {
     });
     expect(id).toBeGreaterThan(0);
 
-    const results = memory.recall("Stripe payments");
+    const results = await memory.recall("Stripe payments");
     expect(results.length).toBeGreaterThanOrEqual(1);
     const found = results.find((r) => r.id === id);
     expect(found).toBeDefined();
@@ -54,7 +54,7 @@ describe("AgentMemory — basic save and recall", () => {
     expect(found?.tags).toContain("payments");
   });
 
-  it("recall uses FTS5 porter stemming", () => {
+  it("recall uses FTS5 porter stemming", async () => {
     // "payment" should match "payments" via porter stemmer
     memory.save({
       category: "decision",
@@ -63,7 +63,7 @@ describe("AgentMemory — basic save and recall", () => {
       tags: ["payments", "international"],
     });
 
-    const results = memory.recall("payment");
+    const results = await memory.recall("payment");
     expect(results.length).toBeGreaterThanOrEqual(2);
     // Both Stripe and PayPal memories should match "payment"
     const titles = results.map((r) => r.title);
@@ -71,7 +71,7 @@ describe("AgentMemory — basic save and recall", () => {
     expect(titles.some((t) => t.includes("PayPal"))).toBe(true);
   });
 
-  it("recall ranks by relevance, not just access time", () => {
+  it("recall ranks by relevance, not just access time", async () => {
     memory.save({
       category: "finding",
       title: "Database uses PostgreSQL",
@@ -86,7 +86,7 @@ describe("AgentMemory — basic save and recall", () => {
     });
 
     // Search for "database" — should rank the PostgreSQL memory first
-    const results = memory.recall("database");
+    const results = await memory.recall("database");
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results[0]?.title).toContain("PostgreSQL");
   });
@@ -168,7 +168,7 @@ describe("AgentMemory — conflict detection", () => {
 });
 
 describe("AgentMemory — access tracking", () => {
-  it("updates access time and count on recall", () => {
+  it("updates access time and count on recall", async () => {
     const id = memory.save({
       category: "pattern",
       title: "Use functional components only",
@@ -177,8 +177,8 @@ describe("AgentMemory — access tracking", () => {
     });
 
     // Recall it
-    memory.recall("functional components");
-    memory.recall("functional components");
+    await memory.recall("functional components");
+    await memory.recall("functional components");
 
     const all = memory.list(1000);
     const found = all.find((m) => m.id === id);

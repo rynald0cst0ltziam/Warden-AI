@@ -72,7 +72,7 @@ export interface SufficientContextResult {
 
 /** Subset of AgentMemory needed for sufficient context. */
 export interface MemoryProvider {
-  recall(query: string, limit?: number): MemoryResult[];
+  recall(query: string, limit?: number): Promise<MemoryResult[]>;
   findFailedApproaches(query: string, limit?: number): MemoryResult[];
 }
 
@@ -130,7 +130,7 @@ export async function sufficientContext(opts: {
   // 2. Recall past decisions (if memory provider available)
   let memories: RelevantMemory[] = [];
   if (opts.memory) {
-    const recalled = opts.memory.recall(opts.task, memoryLimit);
+    const recalled = await opts.memory.recall(opts.task, memoryLimit);
     memories = recalled.map((m) => ({
       type: "decision" as const,
       memory: m,

@@ -303,7 +303,7 @@ npx tsx benchmarks/run-bench.ts
 | **Code intelligence** | Index functions, imports, call sites. Query call graph, impact, dead code | 100x fewer round trips |
 | **Context selection** | Recommends files for the task with 2-hop symbol expansion | 80%+ smaller context |
 | **Tool output pruning** | `warden_grep`, `warden_file_read`, `warden_run_tests`, `warden_run_command` | 50-91% per call |
-| **Agent memory** | Decisions persist across sessions with lifecycle (reaffirm, supersede, archive). Failed approaches surface as warnings | 0 repeated mistakes |
+| **Agent memory** | Decisions persist across sessions with lifecycle (reaffirm, supersede, archive). Hybrid search: FTS5 keyword + semantic vector (all-MiniLM-L6-v2, local ONNX). Failed approaches surface as warnings | 0 repeated mistakes |
 | **Response compression** | Rules drop filler, preamble, narration. Code stays verbatim | 45-65% per reply |
 | **File compression** | `warden compress` strips filler from memory files, no LLM call | up to 32% per file |
 | **Description compression** | 32 tool descriptions compressed before sending | ~41% per turn |
@@ -515,9 +515,9 @@ Audit it yourself — the full source is public. The trust guard is 40 lines in 
 | Language | TypeScript 5.x, ESM |
 | MCP protocol | @modelcontextprotocol/sdk |
 | Code parsing | tree-sitter WASM (30+ languages, no native compilation) |
-| Storage | SQLite (via `node:sqlite`) — FTS5 full-text search |
+| Storage | SQLite (via `node:sqlite`) — FTS5 + semantic vector search (all-MiniLM-L6-v2, local ONNX) |
 | Build | tsup (esbuild) |
-| Tests | Vitest (546 tests, 35 files) |
+| Tests | Vitest (568 tests, 36 files) |
 | Search | ripgrep (auto-detected, optional) |
 | Dashboard | HTTP server, localhost-only, CSP headers |
 | CLI | Commander.js |

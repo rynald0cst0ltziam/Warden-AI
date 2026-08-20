@@ -919,7 +919,12 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
             process.stderr.write("recall requires --query\n");
             process.exit(1);
           }
-          const results = warden.memory.recall(
+          // For CLI (short-lived process), wait for the embedding model to
+          // load so semantic search is available. The MCP server pre-warms
+          // on startup and doesn't need this — it's long-running.
+          const { warmEmbeddings } = await import("../memory/embeddings.js");
+          await warmEmbeddings();
+          const results = await warden.memory.recall(
             opts.query,
             parseInt(opts.limit, 10),
           );
@@ -1049,6 +1054,10 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
       const wardenRoot = findRepoRoot(root);
       const store = await SqliteStore.open(dbPath(wardenRoot));
       const memory = new AgentMemory(store);
+
+      // Pre-warm embedding model for semantic memory search (CLI is short-lived)
+      const { warmEmbeddings } = await import("../memory/embeddings.js");
+      await warmEmbeddings();
 
       try {
         const result = await sufficientContext({

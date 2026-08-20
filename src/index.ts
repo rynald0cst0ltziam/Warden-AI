@@ -79,6 +79,17 @@ export type {
 } from "./context/sufficient.js";
 export { AgentMemory } from "./memory/index.js";
 export type { MemoryInput, MemoryResult, MemoryStore } from "./memory/index.js";
+export {
+  embed,
+  embedBatch,
+  warmEmbeddings,
+  embeddingsAvailable,
+  embeddingsFailed,
+  cosineSimilarity,
+  embeddingToBuffer,
+  bufferToEmbedding,
+  EMBEDDING_DIM,
+} from "./memory/embeddings.js";
 export { TaskTracker } from "./eval/outcomes.js";
 export type { TaskOutcomeInput, TaskOutcomeStats } from "./eval/outcomes.js";
 export { CodeIndex } from "./index/indexer.js";

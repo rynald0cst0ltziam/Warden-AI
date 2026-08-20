@@ -89,7 +89,10 @@ At the start of every session in this project, do THREE things in order:
  "Warden active — X tokens saved so far, Y rules live."
 
 3. Call `warden_memory_recall` with a query matching the user's task to find
- relevant past decisions. Print any results that are relevant.
+ relevant past decisions. Print any results that are relevant. Recall uses
+ hybrid search (keyword + semantic), so describe the task naturally —
+ "login security" will find decisions titled "authentication approach"
+ even without keyword overlap.
 
 This gives the user visible proof that Warden is working and surfaces project
 context from previous sessions.

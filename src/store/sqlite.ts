@@ -287,6 +287,8 @@ export class SqliteStore {
     this.ensureColumn("memories", "outcome", "TEXT");
     this.ensureColumn("memories", "reaffirmed_count", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("memories", "last_reaffirmed_at", "TEXT");
+    // Semantic search: 384-dim embedding stored as BLOB (1536 bytes per memory)
+    this.ensureColumn("memories", "embedding", "BLOB");
     // Ensure FTS5 table + triggers exist (migration for older DBs)
     this.ensureMemoryFts();
   }
@@ -982,6 +984,51 @@ export class SqliteStore {
         )
         .all(...params) as unknown as MemoryRow[];
     }
+  }
+
+  // ---- semantic search: embedding storage (Layer 3 extension) ----
+
+  /**
+   * Store an embedding vector for a memory. Called asynchronously after
+   * saveMemory() — the save itself is not blocked on this.
+   */
+  setMemoryEmbedding(id: number, embedding: Buffer): void {
+    this.db
+      .prepare("UPDATE memories SET embedding = ? WHERE id = ?")
+      .run(embedding, id);
+  }
+
+  /**
+   * Retrieve the embedding for a single memory.
+   * Returns null if no embedding has been generated yet.
+   */
+  getMemoryEmbedding(id: number): Buffer | null {
+    const row = this.db
+      .prepare("SELECT embedding FROM memories WHERE id = ?")
+      .get(id) as { embedding: Buffer | null } | undefined;
+    return row?.embedding ?? null;
+  }
+
+  /**
+   * Load all memory embeddings for in-memory vector search.
+   * Returns { id, embedding } pairs for memories that have embeddings.
+   * Called once per recall() and cached by the caller.
+   */
+  allMemoryEmbeddings(): Array<{ id: number; embedding: Buffer }> {
+    const rows = this.db
+      .prepare("SELECT id, embedding FROM memories WHERE embedding IS NOT NULL")
+      .all() as Array<{ id: number; embedding: Buffer }>;
+    return rows.filter((r) => r.embedding && r.embedding.length > 0);
+  }
+
+  /**
+   * Count memories that have embeddings (for diagnostics and index health).
+   */
+  countEmbeddedMemories(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS c FROM memories WHERE embedding IS NOT NULL")
+      .get() as { c: number };
+    return row.c;
   }
 
   // ---- context selections (Layer 1: input context) ----
