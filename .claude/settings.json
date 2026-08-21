@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|read|read_file|file_read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "warden hook redirect"
+          }
+        ]
+      },
+      {
+        "matcher": "Grep|grep|Search|search|code_search",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "warden hook redirect"
+          }
+        ]
+      }
+    ]
+  }
+}

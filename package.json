@@ -1,6 +1,7 @@
 {
   "name": "warden-ai",
-  "version": "0.7.0",
+  "version": "0.7.1",
+  "mcpName": "io.github.rynald0cst0ltziam/warden",
   "description": "Verified context for AI coding agents. A local context layer that intelligently compresses, filters, indexes, and verifies AI coding-agent tool output. 32 MCP tools across 10 layers: code intelligence (tree-sitter, 30+ languages), context selection, tool output pruning (50-91% per call), agent memory with lifecycle and hybrid semantic search (FTS5 + local ONNX embeddings via all-MiniLM-L6-v2), response compression, file compression, MCP tool description compression, MCP proxy mode (compress any MCP server's tool descriptions, inputSchemas, and tool-call responses — plus lazy-loading meta-tools for 97.9% catalog reduction), session continuity, and safety. 72.3% average token reduction, 100% trust guard pass rate, 8ms overhead. 30-task benchmark suite. Works with Claude Code, Cursor, Windsurf, Codex, Gemini, and 30+ agents. Local-first, zero cloud, zero telemetry.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",

@@ -1,15 +1,10 @@
 # AGENTS.md — Warden
-
 Guidance for AI coding agents working in this repo.
-
 ## What this is
-
 Warden is an MCP server that prunes AI coding agents' tool outputs and proves
 the cuts are safe via a shadow-mode eval gate. TypeScript, ESM, Node >= 22.5
 (uses built-in `node:sqlite`).
-
 ## Build / test / verify commands
-
 - `npm run build` — compile with tsup → `dist/` (entrypoints: `index.js`, `cli.js`)
 - `npm run typecheck` — `tsc --noEmit` (type checking)
 - `npm test` — run the test suite (vitest) — includes property-based guard tests
@@ -17,12 +12,9 @@ the cuts are safe via a shadow-mode eval gate. TypeScript, ESM, Node >= 22.5
 - `npm run warden prune -t grep -i <file>` — smoke test the pruning pipeline on a real input
 - `npx tsx benchmarks/run-bench.ts` — run the 25-task benchmark suite (outputs CSV + JSON to `benchmarks/results/`)
 - `npm run format` / `npm run format:check` — prettier
-
 Always run `npm run typecheck` and `npm test` after code changes. If you add
 a new module, also run `npm run warden prune -t <type>` to exercise it.
-
 ## Architecture (where things live)
-
 - `src/config/` — paths, `WardenConfig`, risk presets, repo-root discovery
 - `src/logging/` — stderr-only structured logger (never stdout — that's MCP's JSON-RPC channel)
 - `src/store/sqlite.ts` — `node:sqlite`-backed state: rules, shadow_runs, decisions, config_snapshots, code index tables
@@ -33,9 +25,7 @@ a new module, also run `npm run warden prune -t <type>` to exercise it.
 - `src/warden.ts` — orchestrator tying classifier + engine + gate + store together
 - `src/server/mcp.ts` — MCP server exposing pruning, context, memory, and code intelligence tools
 - `src/cli/` — `warden` CLI (`init`, `serve`, `status`, `hud`, `promote`, `revert`, `prune`, `report`, `index`, `graph`, `impact`, `architecture`)
-
 ## Non-negotiable rules
-
 1. **Pruning only removes, never rewrites.** Code, shell commands, and
   error/stack-trace text must be included-or-excluded wholesale. The guard in
  `src/pruner/guard.ts` enforces this at the framework level — every
@@ -48,9 +38,7 @@ a new module, also run `npm run warden prune -t <type>` to exercise it.
  pinned set is in `package.json` — see the commit history for the rationale.
  `@modelcontextprotocol/sdk` is on v1.x (v2 /1.30.0 were too new at scaffold
  time).
-
 ## Adding a new pruning module
-
 1. Create `src/pruner/modules/<name>.ts` exporting a `PruneModule` (see
  `grep.ts` for the shape).
 2. Register it in `src/pruner/modules/index.ts` and in the `MODULES` map in
@@ -58,9 +46,7 @@ a new module, also run `npm run warden prune -t <type>` to exercise it.
 3. Add its `ToolType` to `src/pruner/types.ts` and the MCP `TOOL_TYPES` enum
  in `src/server/mcp.ts` and the CLI `TOOL_TYPES` list in `src/cli/index.ts`.
 4. Run `npm run typecheck` and `npm run warden prune -t <type> -i <sample>`.
-
 ## Conventions
-
 - ESM throughout (`"type": "module"`). Use `node:` prefixes for built-ins.
 - Strict TypeScript (`strict`, `noUncheckedIndexedAccess`, `noImplicitOverride`).
 - Prettier with double quotes, trailing commas, 80-col width.
@@ -79,23 +65,39 @@ It proves every optimization is safe via a shadow-mode eval gate.
 
 At the start of every session in this project, do THREE things in order:
 
-1. Call `warden_handoff` with `{ read: true }` to read the previous session's
+1. Call `warden_handoff` with `{ read: true, repoRoot: "<project-root>" }` to read the previous session's
  handoff document. This gives you the essential state from the last session —
  decisions made, tasks completed, files touched — so you pick up where the
  previous session left off instead of starting from scratch. Print a one-line
  summary to the user: "Previous session: X decisions, Y tasks, Z files touched."
 
-2. Call `warden_status` and print a one-line summary:
+2. Call `warden_status` with `{ repoRoot: "<project-root>" }` and print a one-line summary:
  "Warden active — X tokens saved so far, Y rules live."
 
-3. Call `warden_memory_recall` with a query matching the user's task to find
- relevant past decisions. Print any results that are relevant. Recall uses
- hybrid search (keyword + semantic), so describe the task naturally —
- "login security" will find decisions titled "authentication approach"
- even without keyword overlap.
+3. Call `warden_memory_recall` with `{ query: "<task-relevant-query>", repoRoot: "<project-root>" }` to find
+ relevant past decisions. Print any results that are relevant.
 
 This gives the user visible proof that Warden is working and surfaces project
 context from previous sessions.
+
+### CRITICAL: Always pass repoRoot on memory/status/handoff calls
+
+The MCP server is a long-running process whose working directory is fixed at
+startup. If you switch projects, the server may still be using a different
+project's database. To ensure memories, status, and handoffs are scoped to the
+correct project, ALWAYS pass `repoRoot` (your current project root directory)
+on these calls:
+- `warden_status({ repoRoot: "..." })`
+- `warden_memory_save({ ..., repoRoot: "..." })`
+- `warden_memory_recall({ ..., repoRoot: "..." })`
+- `warden_memory_list({ ..., repoRoot: "..." })`
+- `warden_memory_forget({ ..., repoRoot: "..." })`
+- `warden_record_outcome({ ..., repoRoot: "..." })`
+- `warden_handoff({ ..., repoRoot: "..." })`
+- `warden_outcome_stats({ repoRoot: "..." })`
+
+Use the absolute path to your project root (the directory containing .git or
+package.json). This ensures each project's memories stay isolated.
 
 ### If warden_status fails (transport error, tool not found, etc.)
 
@@ -121,6 +123,14 @@ Warden tools do the same work AND prune the output automatically — no extra
 step needed. This is not optional. Every tool call that could produce large
 output should go through Warden.
 
+### Enforcement hooks (automatic)
+
+If `warden init` installed hooks (Step 2c), built-in Read/Grep calls are
+automatically blocked and redirected to Warden wrappers. You don't need to
+remember — the hook intercepts the call and tells you to use the Warden
+wrapper instead. If you see a "BLOCKED: Use warden_file_read instead" message,
+that's the hook working as intended. call the Warden wrapper tool.
+
 1. **Searching code**: Use `warden_grep` INSTEAD OF your built-in grep/search.
  - It searches files and returns only the matches relevant to the current task.
  - Parameters: pattern (required), path, glob, ignoreCase, maxResults
@@ -144,9 +154,10 @@ output should go through Warden.
 When you make a durable project decision (architecture choice, library selection,
 convention, constraint), call `warden_memory_save` to persist it:
 
-- Parameters: category, title, body, tags, source
+- Parameters: category, title, body, tags, source, repoRoot
 - Categories: "decision" | "finding" | "pattern" | "constraint" | "preference"
-- Typical: warden_memory_save({ category: "decision", title: "Use Stripe for payments", body: ". .", tags: ["payments","billing"] })
+- repoRoot: pass your current project root directory to scope memories to this project
+- Typical: warden_memory_save({ category: "decision", title: "Use Stripe for payments", body: ". .", tags: ["payments","billing"], repoRoot: "/path/to/project" })
 
 Only save things that should persist across sessions — not transient task notes.
 Use `warden_memory_recall` at the start of future tasks to find relevant decisions.
@@ -156,8 +167,8 @@ Use `warden_memory_recall` at the start of future tasks to find relevant decisio
 After finishing a task, do TWO things:
 
 1. Call `warden_record_outcome` to report whether it succeeded:
- - Parameters: task, success, pruned, tokensSaved
- - Typical: warden_record_outcome({ task: "fix null pointer", success: true, pruned: true, tokensSaved: 500 })
+ - Parameters: task, success, pruned, tokensSaved, repoRoot
+ - Typical: warden_record_outcome({ task: "fix null pointer", success: true, pruned: true, tokensSaved: 500, repoRoot: "/path/to/project" })
 
 2. Call `warden_status` and print a one-line summary to the user:
  "Warden — X tokens saved this session (Y% reduction)."
@@ -172,9 +183,9 @@ When the session is ending, or when the context window is getting full and may
 be compacted, call `warden_handoff` (without `read`) to GENERATE a handoff
 document for the next session:
 
-- Typical: warden_handoff({}) — generates a compact summary of this session
+- Typical: warden_handoff({ repoRoot: "/path/to/project" }) — generates a compact summary of this session
 - The document covers: decisions made, tasks completed, files touched, tokens saved
-- It is stored locally and read by the next session via `warden_handoff({ read: true })`
+- It is stored locally and read by the next session via `warden_handoff({ read: true, repoRoot: "/path/to/project" })`
 - Incremental: each handoff covers only the window since the previous one
 
 When to generate a handoff:

@@ -83,6 +83,21 @@ export async function createMcpServer(opts: CreateMcpOptions = {}): Promise<{
   const server = new McpServer({
     name: "Warden",
     version: "0.1.0",
+    title: "Warden",
+    description: "Verified context layer for AI coding agents — prunes, compresses, indexes, and remembers.",
+    websiteUrl: "https://warden-io.vercel.app",
+    icons: [
+      {
+        src: "https://warden-io.vercel.app/warden-icon.svg",
+        mimeType: "image/svg+xml",
+        sizes: ["any"],
+      },
+      {
+        src: "https://warden-io.vercel.app/warden-icon.png",
+        mimeType: "image/png",
+        sizes: ["128x128"],
+      },
+    ],
   });
 
   // Create memory and tracker early — they're used by warden_status (auto-surface

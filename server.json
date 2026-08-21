@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.rynald0cst0ltziam/warden",
+  "description": "Verified context layer for AI coding agents — prunes, compresses, indexes, remembers. 32 MCP tools.",
+  "version": "0.7.1",
+  "websiteUrl": "https://warden-io.vercel.app",
+  "icons": [
+    {
+      "src": "https://warden-io.vercel.app/warden-icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    },
+    {
+      "src": "https://warden-io.vercel.app/warden-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["128x128"]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "warden-ai",
+      "version": "0.7.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
