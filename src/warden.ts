@@ -1,13 +1,3 @@
-/**
- * Warden orchestrator — wires the classifier, pruning engine, eval gate, and
- * local store into one cohesive pipeline. Used by both the MCP server and the
- * CLI so they share identical behavior.
- *
- * Pipeline per tool call:
- *   classify task → prune output → guard check →
- *   if rule is active: ship pruned, record prune decision
- *   if rule is shadow: ship raw (safe), record shadow evidence + observe decision
- */
 import {
   TaskClassifier,
   type ClassifyInput,
@@ -35,7 +25,12 @@ import { AgentMemory } from "./memory/index.js";
 import { TaskTracker } from "./eval/outcomes.js";
 import { registerProject } from "./stats/global.js";
 import { recordSpend } from "./budget/index.js";
-import { storeOriginal, appendCcrMarker } from "./ccr/index.js";
+import {
+  appendCcrMarker,
+  ccrMarkerFor,
+  storeOriginal,
+} from "./ccr/index.js";
+import { neverWorse, verifyInclusion } from "./pruner/guard.js";
 
 export interface PruneCallInput {
   toolType: ToolType;
@@ -87,7 +82,6 @@ export class Warden {
     this.ensureRules();
   }
 
-  /** Async factory — SqliteStore.open is async (dynamic node:sqlite import). */
   static async create(opts?: {
     config?: WardenConfig;
     classifier?: TaskClassifier;
@@ -103,22 +97,16 @@ export class Warden {
     const classifier = opts?.classifier ?? new TaskClassifier();
     const warden = new Warden(store, config, classifier, repoRoot);
 
-    // Register this project in the global registry for cross-project stats
     if (repoRoot) {
       registerProject(repoRoot, path);
     }
 
-    // Pre-warm the embedding model in the background so semantic memory
-    // search is ready by the first recall(). Non-blocking — if this fails,
-    // recall falls back to FTS5. The model downloads once (~22 MB) and
-    // caches locally under ~/.warden/models/.
     if (process.env.WARDEN_NO_EMBEDDINGS !== "1" && process.env.WARDEN_NO_EMBEDDINGS !== "true") {
       import("./memory/embeddings.js")
         .then((m) => m.warmEmbeddings())
         .catch(() => { /* non-fatal — FTS5 fallback */ });
     }
 
-    // First-run welcome message (only when the DB was just created)
     if (!dbExisted && process.env.WARDEN_SILENT !== "1") {
       const live = registeredModules().length;
       logger.info("Warden database created — pruning rules active", {
@@ -134,7 +122,6 @@ export class Warden {
     return warden;
   }
 
-  /** Register built-in pruning modules; activate by default unless enterprise. */
   private ensureRules(): void {
     const existing = new Set(this.store.listRules().map((r) => r.id));
     const now = new Date().toISOString();
@@ -161,11 +148,6 @@ export class Warden {
     this.activateBuiltInShadowRules();
   }
 
-  /**
-   * Upgrade built-in rules still in shadow to active on startup.
-   * Fixes existing installs and ensures savings without manual promotion.
-   * Skips reverted rules — those were explicitly disabled.
-   */
   private activateBuiltInShadowRules(): void {
     if (this.config.defaultRuleStage !== "active") return;
     for (const mod of registeredModules()) {
@@ -191,7 +173,6 @@ export class Warden {
     this.store.close();
   }
 
-  /** Full pipeline for one tool call. */
   async pruneCall(input: PruneCallInput): Promise<PruneCallResult> {
     const t0 = performance.now();
     const classifyInput: ClassifyInput = {
@@ -221,33 +202,43 @@ export class Warden {
     const durationMs = Math.round(performance.now() - t0);
 
     if (applied) {
-      // CCR: store the original output so the agent can retrieve it if needed.
-      // Only stores when pruning actually removed content.
-      const ccrMarker = storeOriginal({
-        store: this.store,
-        rawOutput: input.rawOutput,
-        toolType: input.toolType,
-        ruleId: result.ruleId,
-        tokensFull: result.tokensFull,
-        tokensPruned: result.tokensPruned,
-      });
-      // Append the retrieval marker to the pruned output.
-      const shipped = ccrMarker
-        ? appendCcrMarker(result.prunedOutput, ccrMarker)
-        : result.prunedOutput;
+      let shipped = result.prunedOutput;
+      const ccrCandidate = result.tokensPruned < result.tokensFull ? ccrMarkerFor(input.rawOutput) : null;
 
-      // Ship the pruned output, log the prune decision.
+      if (ccrCandidate) {
+        const candidateOutput = appendCcrMarker(result.prunedOutput, ccrCandidate);
+        const safeToShip = verifyInclusion(input.rawOutput, candidateOutput) && neverWorse(input.rawOutput, candidateOutput);
+
+        if (safeToShip) {
+          const marker = storeOriginal({
+            store: this.store,
+            rawOutput: input.rawOutput,
+            toolType: input.toolType,
+            ruleId: result.ruleId,
+            tokensFull: result.tokensFull,
+            tokensPruned: result.tokensPruned,
+          });
+          shipped = marker ? appendCcrMarker(result.prunedOutput, marker) : result.prunedOutput;
+        } else {
+          logger.warn("ccr marker rejected by guard before shipping", {
+            ruleId: result.ruleId,
+            toolType: input.toolType,
+            tokensFull: result.tokensFull,
+            tokensPruned: result.tokensPruned,
+            prunedLen: result.prunedOutput.length,
+            rawLen: input.rawOutput.length,
+          });
+          shipped = result.prunedOutput;
+        }
+      }
+
       this.gate.recordPrune(result, true, durationMs);
-      // Track token spend for budget caps (fire-and-forget, non-blocking).
-      // Errors are logged at warn level (not silently swallowed) because a
-      // failing budget tracker could mean budget caps aren't enforced.
       const tokensShipped = result.tokensPruned;
-      recordSpend("project:default", tokensShipped).catch(
-        (err) =>
-          logger.warn(
-            "budget recordSpend failed — budget caps may not be enforced",
-            { err: String(err) },
-          ),
+      recordSpend("project:default", tokensShipped).catch((err) =>
+        logger.warn(
+          "budget recordSpend failed — budget caps may not be enforced",
+          { err: String(err) },
+        ),
       );
       return {
         result,
@@ -258,9 +249,6 @@ export class Warden {
       };
     }
 
-    // Shadow (or reverted): ship preprocessed output (safe rewrites only —
-    // ANSI strip, path shorten, JSON clean, whitespace). No line removal.
-    // Record shadow evidence so the gate can score the rule and promote it.
     if (stage === "shadow") {
       this.gate.recordShadow(
         result.ruleId,
@@ -271,16 +259,13 @@ export class Warden {
       );
     }
     this.gate.recordPrune(result, false, durationMs);
-    // Track token spend even in shadow mode (the tokens still went to the model).
     const tokensShippedRaw = result.tokensFull;
-    recordSpend("project:default", tokensShippedRaw).catch(
-      (err) =>
-        logger.warn(
-          "budget recordSpend failed — budget caps may not be enforced",
-          { err: String(err) },
-        ),
+    recordSpend("project:default", tokensShippedRaw).catch((err) =>
+      logger.warn(
+        "budget recordSpend failed — budget caps may not be enforced",
+        { err: String(err) },
+      ),
     );
-    // Always apply preprocessing (safe rewrites), even in shadow mode.
     const preprocessed = this.engine.preprocessOnly(input.rawOutput);
     return {
       result,
@@ -291,7 +276,6 @@ export class Warden {
     };
   }
 
-  /** Snapshot of all rules + their confidence, for status/HUD. */
   status(): Array<{
     ruleId: string;
     name: string;

@@ -23,10 +23,21 @@ try {
   // Run `warden init` silently — it registers MCP server in all detected
   // agents, writes rules files, builds code index, compresses memory files.
   // We suppress output to keep the install clean, but exit codes propagate.
+  // To avoid surprising enterprise installs (air-gapped or restricted),
+  // disable the embedding model download during postinstall. Users can run
+  // `warden init` later to enable embeddings or set WARDEN_NO_EMBEDDINGS=0.
+  const env = Object.assign({}, process.env, { WARDEN_NO_EMBEDDINGS: "1" });
+
+  if (process.env.WARDEN_SILENT !== "1" && !process.env.CI) {
+    // brief, non-fatal notice for interactive installs
+    process.stderr.write("\n  Note: embedding model downloads are disabled during postinstall. Run `warden init` manually to enable semantic embeddings if desired.\n\n");
+  }
+
   execSync(`node "${cliJs}" init --skip-index`, {
     stdio: ["ignore", "ignore", "ignore"],
     timeout: 30000,
     cwd: process.cwd(),
+    env,
   });
 } catch {
   // Silently fail — the user can run `warden init` manually.
