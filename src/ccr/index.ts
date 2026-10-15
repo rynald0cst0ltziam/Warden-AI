@@ -20,7 +20,7 @@
  */
 import { createHash } from "node:crypto";
 import type { SqliteStore } from "../store/sqlite.js";
-import { annotation, WARDEN_MARKER } from "../pruner/guard.js";
+import { annotation } from "../pruner/guard.js";
 import { logger } from "../logging/index.js";
 
 /** Default TTL for CCR entries (days). */
@@ -33,6 +33,17 @@ export const CCR_DEFAULT_TTL_DAYS = 7;
  */
 export function ccrHash(rawOutput: string): string {
   return createHash("sha256").update(rawOutput).digest("hex").slice(0, 12);
+}
+
+/**
+ * Build the CCR retrieval marker without persisting it.
+ * This can be used to validate the final shipped output before persisting the original.
+ */
+export function ccrMarkerFor(rawOutput: string): string | null {
+  const hash = ccrHash(rawOutput);
+  return annotation(
+    `retrieve full or sliced output: warden_retrieve("${hash}") or warden_retrieve("${hash}", around="symbolName") or warden_retrieve("${hash}", lines="120:170")`,
+  );
 }
 
 /**
@@ -76,9 +87,7 @@ export function storeOriginal(opts: {
     tokensPruned,
   });
 
-  return annotation(
-    `retrieve full or sliced output: warden_retrieve("${hash}") or warden_retrieve("${hash}", around="symbolName") or warden_retrieve("${hash}", lines="120:170")`,
-  );
+  return ccrMarkerFor(rawOutput);
 }
 
 /**
@@ -143,7 +152,6 @@ export function retrieveSlice(
   const lines = original.rawOutput.split(/\r?\n/);
   const totalLines = lines.length;
 
-  // No slice options — return full output
   if (!opts.around && !opts.lines) {
     return {
       output: original.rawOutput,
@@ -157,17 +165,12 @@ export function retrieveSlice(
   let end: number;
 
   if (opts.lines) {
-    // Explicit line range (1-based, inclusive)
     start = Math.max(1, opts.lines[0]);
     end = Math.min(totalLines, opts.lines[1]);
   } else if (opts.around) {
-    // Find the first line containing the search string
     const needle = opts.around.toLowerCase();
-    const matchIdx = lines.findIndex(
-      (l) => l.toLowerCase().includes(needle),
-    );
+    const matchIdx = lines.findIndex((l) => l.toLowerCase().includes(needle));
     if (matchIdx < 0) {
-      // No match — return full output with a note
       return {
         output: original.rawOutput,
         toolType: original.toolType,
@@ -176,7 +179,6 @@ export function retrieveSlice(
       };
     }
     const ctx = opts.context ?? 10;
-    // Convert 0-based index to 1-based line numbers
     start = Math.max(1, matchIdx + 1 - ctx);
     end = Math.min(totalLines, matchIdx + 1 + ctx);
   } else {
@@ -188,7 +190,6 @@ export function retrieveSlice(
     };
   }
 
-  // Extract the slice (convert 1-based to 0-based for array slicing)
   const sliceLines = lines.slice(start - 1, end);
   const header = annotation(
     `slice of original (hash=${hash}): lines ${start}-${end} of ${totalLines} — full output: warden_retrieve("${hash}")`,
@@ -229,8 +230,9 @@ export function appendCcrMarker(
   prunedOutput: string,
   marker: string | null,
 ): string {
-  if (!marker) return prunedOutput;
-  return `${prunedOutput}\n${marker}`;
+  if (!marker || !marker.trim()) return prunedOutput;
+  const base = prunedOutput.trimEnd();
+  return base.length === 0 ? marker : `${base}\n${marker}`;
 }
 
 /**
